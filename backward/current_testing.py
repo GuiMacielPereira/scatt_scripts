@@ -50,7 +50,7 @@ ncp = syn["all_tot_ncp"][0]
 
 x = np.linspace(0, 1, len(ncp[0]))
 plt.figure(3)
-spec_idx = 1
+spec_idx = 0
 plt.plot(x, ws[spec_idx], label="synthetic ncp", linewidth = 2)
 plt.plot(x, ncp[spec_idx], "--", label="fitted ncp", linewidth = 2)
 plt.legend()
