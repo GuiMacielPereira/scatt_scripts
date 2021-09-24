@@ -197,7 +197,7 @@ loadVesuvioWs = False
 loadRawAndEmptyWorkspaces(loadVesuvioWs)
 
 noOfMSIterations = 1
-firstSpec, lastSpec = 3, 5  # 3, 134
+firstSpec, lastSpec = 3, 134  # 3, 134
 firstIdx, lastIdx = convertFirstAndLastSpecToIdx(firstSpec, lastSpec)
 detectors_masked = loadMaskedDetectors(firstSpec, lastSpec)
 
@@ -208,7 +208,7 @@ createSlabGeometry(name, vertical_width, horizontal_width, thickness)
 synthetic_workspace = True
 wsToBeFitted = chooseWorkspaceToBeFitted(synthetic_workspace)
 
-scaleDataY = True
+scaleDataY = False
 
 
 savePath = repoPath / "script_runs" / "opt_spec3-134_iter4_ncp_nightlybuild_synthetic"
@@ -221,8 +221,8 @@ def main():
     for iteration in range(noOfMSIterations):
         # Workspace from previous iteration
         wsToBeFitted = mtd[name+str(iteration)]
-        # This line is probably not necessary
-        MaskDetectors(Workspace=wsToBeFitted, SpectraList=detectors_masked)
+        # TODO: change input of maskdetector from specNo to specIdx
+        # MaskDetectors(Workspace=wsToBeFitted, SpectraList=detectors_masked)
 
         fittedNcpResults = fitNcpToWorkspace(wsToBeFitted)
 
@@ -282,33 +282,33 @@ class resultsObject:
                  all_mean_intensities=all_mean_intensities,
                  all_tot_ncp=all_tot_ncp)
 
-class fitParameters:
-    """Stores the fitted parameters and defines methods to extract information"""
+# class fitParameters:
+#     """Stores the fitted parameters and defines methods to extract information"""
 
-    def __init__(self, fitPars):
-        noOfMasses = len(masses)
-        self.intensities = fitPars[:, :noOfMasses]
-        self.widths = fitPars[:, noOfMasses:2*noOfMasses]
-        self.centers = fitPars[:, 2*noOfMasses:3*noOfMasses]
-        self.spec = fitPars[:, -3]
-        self.chi2 = fitPars[:, -2]
-        self.nit = fitPars[:, -1]
+#     def __init__(self, fitPars):
+#         noOfMasses = len(masses)
+#         self.intensities = fitPars[:, :noOfMasses]
+#         self.widths = fitPars[:, noOfMasses:2*noOfMasses]
+#         self.centers = fitPars[:, 2*noOfMasses:3*noOfMasses]
+#         self.spec = fitPars[:, -3]
+#         self.chi2 = fitPars[:, -2]
+#         self.nit = fitPars[:, -1]
 
-    def unscaleIntensities(self, scalingFactor):
-        self.intensities /= scalingFactor  
+#     def unscaleIntensities(self, scalingFactor):
+#         self.intensities /= scalingFactor  
 
-    def printPars(self):
-        print("[----Intensities----Widths----Centers----Spec Chi2 Nit]:\n\n", 
-                np.hstack((self.intensities, self.widths, self.centers, 
-                           self.spec[:, np.newaxis], self.chi2[:, np.newaxis], self.nit[:, np.newaxis])))
+#     def printPars(self):
+#         print("[----Intensities----Widths----Centers----Spec Chi2 Nit]:\n\n", 
+#                 np.hstack((self.intensities, self.widths, self.centers, 
+#                            self.spec[:, np.newaxis], self.chi2[:, np.newaxis], self.nit[:, np.newaxis])))
 
-    def getLinAndNonLinPars(self):
-        linPars = self.intensities
-        nonLinPars = np.hstack((self.widths, self.centers))
-        return linPars, nonLinPars
+#     def getLinAndNonLinPars(self):
+#         linPars = self.intensities
+#         nonLinPars = np.hstack((self.widths, self.centers))
+#         return linPars, nonLinPars
 
-    def getIntensitiesWidthsCenters(self):
-        return self.intensities, self.widths, self.centers
+#     def getIntensitiesWidthsCenters(self):
+#         return self.intensities, self.widths, self.centers
 
 
 
@@ -375,7 +375,8 @@ def calculateScalingFactor(scaleDataY, dataX, dataY):
         dataY = dataY[:, :-1]
         numIntgr = np.sum(dataY*histWidths, axis=1)
         scalingFactor = 100 / numIntgr  
-    return scalingFactor[:, np.newaxis]
+        scalingFactor = scalingFactor[:, np.newaxis]
+    return scalingFactor
 
 def loadInstrParsFileIntoArray(InstrParsPath, firstSpec, lastSpec):
     """Loads instrument parameters into array, from the file in the specified path"""
@@ -438,14 +439,16 @@ def reshapeArrayPerSpectrum(A):
 def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays):
     """Fits the NCP and returns the best fit parameters for one spectrum"""
 
-    if np.all(dataY == 0):  # If all zeros, then parameters are all nan, so they are ignored later down the line
-        return np.full(len(linPar) + len(nonLinPars) + 3, np.nan)
+    if np.all(dataY == 0) or np.all(np.isnan(dataY)):  # If all zeros, then parameters are all nan, so they are ignored later down the line
+        return np.full(len(linPars) + len(nonLinPars) + 3, np.nan)
     
-    result = optimize.minimize(errorFunction, 
-                               nonLinPars, 
-                               args=(masses, dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
-                               method='SLSQP',
-                               bounds=nonLinBounds)
+    result = optimize.minimize(
+        errorFunction, 
+        nonLinPars, 
+        args=(masses, dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
+        bounds=nonLinBounds,
+        method="SLSQP"
+        )
     
     fittedNonLinPars = result["x"]
     fittedLinPars = fitLinPar(nonLinPars, masses, dataY, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
@@ -666,6 +669,35 @@ def numericalThirdDerivative(x, fun):
     # need to pad with zeros left and right to return array with same shape
     derivative[:, 6:-6] = dev
     return derivative
+
+class fitParameters:
+    """Stores the fitted parameters and defines methods to extract information"""
+
+    def __init__(self, fitPars):
+        noOfMasses = len(masses)
+        self.intensities = fitPars[:, :noOfMasses]
+        self.widths = fitPars[:, noOfMasses:2*noOfMasses]
+        self.centers = fitPars[:, 2*noOfMasses:3*noOfMasses]
+        self.spec = fitPars[:, -3]
+        self.chi2 = fitPars[:, -2]
+        self.nit = fitPars[:, -1]
+
+    def unscaleIntensities(self, scalingFactor):
+        self.intensities /= scalingFactor  
+
+    def printPars(self):
+        print("[----Intensities----Widths----Centers----Spec Chi2 Nit]:\n\n", 
+                np.hstack((self.intensities, self.widths, self.centers, 
+                           self.spec[:, np.newaxis], self.chi2[:, np.newaxis], self.nit[:, np.newaxis])))
+
+    def getLinAndNonLinPars(self):
+        linPars = self.intensities
+        nonLinPars = np.hstack((self.widths, self.centers))
+        return linPars, nonLinPars
+
+    def getIntensitiesWidthsCenters(self):
+        return self.intensities, self.widths, self.centers
+
 
 
 def calculateMeanWidthsAndIntensities(widths, intensities):
