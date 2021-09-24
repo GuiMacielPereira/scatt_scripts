@@ -197,7 +197,7 @@ loadVesuvioWs = False
 loadRawAndEmptyWorkspaces(loadVesuvioWs)
 
 noOfMSIterations = 1
-firstSpec, lastSpec = 3, 134  # 3, 134
+firstSpec, lastSpec = 3, 5  # 3, 134
 firstIdx, lastIdx = convertFirstAndLastSpecToIdx(firstSpec, lastSpec)
 detectors_masked = loadMaskedDetectors(firstSpec, lastSpec)
 
@@ -281,35 +281,6 @@ class resultsObject:
                  all_mean_widths=all_mean_widths,
                  all_mean_intensities=all_mean_intensities,
                  all_tot_ncp=all_tot_ncp)
-
-# class fitParameters:
-#     """Stores the fitted parameters and defines methods to extract information"""
-
-#     def __init__(self, fitPars):
-#         noOfMasses = len(masses)
-#         self.intensities = fitPars[:, :noOfMasses]
-#         self.widths = fitPars[:, noOfMasses:2*noOfMasses]
-#         self.centers = fitPars[:, 2*noOfMasses:3*noOfMasses]
-#         self.spec = fitPars[:, -3]
-#         self.chi2 = fitPars[:, -2]
-#         self.nit = fitPars[:, -1]
-
-#     def unscaleIntensities(self, scalingFactor):
-#         self.intensities /= scalingFactor  
-
-#     def printPars(self):
-#         print("[----Intensities----Widths----Centers----Spec Chi2 Nit]:\n\n", 
-#                 np.hstack((self.intensities, self.widths, self.centers, 
-#                            self.spec[:, np.newaxis], self.chi2[:, np.newaxis], self.nit[:, np.newaxis])))
-
-#     def getLinAndNonLinPars(self):
-#         linPars = self.intensities
-#         nonLinPars = np.hstack((self.widths, self.centers))
-#         return linPars, nonLinPars
-
-#     def getIntensitiesWidthsCenters(self):
-#         return self.intensities, self.widths, self.centers
-
 
 
 def fitNcpToWorkspace(ws):
@@ -447,7 +418,8 @@ def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPa
         nonLinPars, 
         args=(masses, dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
         bounds=nonLinBounds,
-        method="SLSQP"
+        method="SLSQP",
+        options={"disp":True}
         )
     
     fittedNonLinPars = result["x"]
