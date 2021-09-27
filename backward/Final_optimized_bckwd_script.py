@@ -197,7 +197,7 @@ loadVesuvioWs = False
 loadRawAndEmptyWorkspaces(loadVesuvioWs)
 
 noOfMSIterations = 1
-firstSpec, lastSpec = 3, 5  # 3, 134
+firstSpec, lastSpec = 3, 134  # 3, 134
 firstIdx, lastIdx = convertFirstAndLastSpecToIdx(firstSpec, lastSpec)
 detectors_masked = loadMaskedDetectors(firstSpec, lastSpec)
 
@@ -208,7 +208,8 @@ createSlabGeometry(name, vertical_width, horizontal_width, thickness)
 synthetic_workspace = True
 wsToBeFitted = chooseWorkspaceToBeFitted(synthetic_workspace)
 
-savePath = repoPath / "script_runs" / "opt_spec3-134_iter4_ncp_nightlybuild_synthetic"
+savePath = r"C:/Users/guijo/Desktop/optimizations/partitioned_least_squares"
+#repoPath / "script_runs" / "opt_spec3-134_iter4_ncp_nightlybuild_synthetic"
 
 
 def main():
@@ -403,7 +404,7 @@ def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPa
         args=(masses, dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
         bounds=nonLinBounds,
         method="SLSQP",
-        options={"disp":True}
+        options={"disp":False}
         )
     
     fittedNonLinPars = result["x"]
