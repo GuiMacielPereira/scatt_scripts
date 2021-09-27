@@ -197,7 +197,7 @@ loadVesuvioWs = False
 loadRawAndEmptyWorkspaces(loadVesuvioWs)
 
 noOfMSIterations = 1
-firstSpec, lastSpec = 3, 134  # 3, 134
+firstSpec, lastSpec = 3, 5  # 3, 134
 firstIdx, lastIdx = convertFirstAndLastSpecToIdx(firstSpec, lastSpec)
 detectors_masked = loadMaskedDetectors(firstSpec, lastSpec)
 
@@ -468,7 +468,7 @@ def errorFunction(nonLinPars, masses, dataY, dataE, ySpacesForEachMass, resoluti
     if (np.sum(dataE) > 0):    #don't understand this conditional statement
         chi2 =  ((ncpTotal - dataY)**2)/(dataE)**2    #weighted fit
     else:
-        chi2 = (ncpTotal - dataY)**2
+        chi2 = ((ncpTotal - dataY)/dataY)**2
     return np.sum(chi2)
 
 def fitLinPar(nonLinPars, masses, dataY, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays):
