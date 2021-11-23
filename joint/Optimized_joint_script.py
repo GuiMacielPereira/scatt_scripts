@@ -1,3 +1,4 @@
+import multiprocessing
 import numpy as np
 import mantid
 from mantid.simpleapi import *
@@ -7,6 +8,8 @@ import time
 from pathlib import Path
 import multiprocessing as mp
 from multiprocessing import freeze_support
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor as ex
 
 # Format print output of arrays
 np.set_printoptions(suppress=True, precision=4, linewidth=150)
@@ -42,14 +45,15 @@ class InitialConditions:
     vertical_width, horizontal_width, thickness = 0.1, 0.1, 0.001  # Expressed in meters
   
     # Choose type of scattering, when both True, the mean widths from back are used in ic of front
-    backScatteringProcedure = False
-    forwardScatteringProcedure = True
+    backScatteringProcedure = True
+    forwardScatteringProcedure = False
 
     # Paths to save results for back and forward scattering
     pathForTesting = repoPath / "tests" / "cleaning"  
     forwardScatteringSavePath = pathForTesting / "current_forward.npz" 
     backScatteringSavePath = pathForTesting / "current_backward.npz"
 
+    withMultiprocessing = True
 
     def setBackscatteringInitialConditions(self):
         # Parameters to load Raw and Empty Workspaces
@@ -178,44 +182,31 @@ class InitialConditions:
 
 # This is the only variable with global behaviour, all functions are defined to use attributes of ic
 ic = InitialConditions() 
-if ic.backScatteringProcedure:
-    ic.setBackscatteringInitialConditions()
-else:
-    ic.setForwardScatteringInitialConditions()
 
 
 def main():
-    wsFinal, ScatteringResults = iterativeFitForDataReduction()
+    if ic.backScatteringProcedure:
+        ic.setBackscatteringInitialConditions()
+        wsFinal, backScatteringResults = iterativeFitForDataReduction()
+        backScatteringResults.save(ic.backScatteringSavePath)
 
-    if ~ic.backScatteringProcedure:
-        fitInYSpaceProcedure(wsFinal, ScatteringResults)
+    if ic.forwardScatteringProcedure:
+        ic.setForwardScatteringInitialConditions()
 
-    ScatteringResults.save(ic.backScatteringSavePath)
+        try:  
+            backMeanWidths = backScatteringResults.resultsList[0][-1]
+            ic.initPars[4::3] = backMeanWidths
+            ic.bounds[4::3] = backMeanWidths[:, np.newaxis] * np.ones((1,2))
+            print("\nChanged ic according to mean widhts from backscattering:\n",
+                "Forward scattering initial fitting parameters:\n", ic.initPars,
+                "\nForward scattering initial fitting bounds:\n", ic.bounds)
+        except UnboundLocalError:
+            print("Using the unchanged ic for forward scattering ...")
+            pass
 
-
-# def main():
-#     if ic.backScatteringProcedure:
-#         ic.setBackscatteringInitialConditions()
-#         wsFinal, backScatteringResults = iterativeFitForDataReduction()
-#         backScatteringResults.save(ic.backScatteringSavePath)
-
-#     if ic.forwardScatteringProcedure:
-#         ic.setForwardScatteringInitialConditions()
-
-#         try:  
-#             backMeanWidths = backScatteringResults.resultsList[0][-1]
-#             ic.initPars[4::3] = backMeanWidths
-#             ic.bounds[4::3] = backMeanWidths[:, np.newaxis] * np.ones((1,2))
-#             print("\nChanged ic according to mean widhts from backscattering:\n",
-#                 "Forward scattering initial fitting parameters:\n", ic.initPars,
-#                 "\nForward scattering initial fitting bounds:\n", ic.bounds)
-#         except UnboundLocalError:
-#             print("Using the unchanged ic for forward scattering ...")
-#             pass
-
-#         wsFinal, forwardScatteringResults = iterativeFitForDataReduction()
-#         fitInYSpaceProcedure(wsFinal, forwardScatteringResults)
-#         forwardScatteringResults.save(ic.forwardScatteringSavePath)
+        wsFinal, forwardScatteringResults = iterativeFitForDataReduction()
+        fitInYSpaceProcedure(wsFinal, forwardScatteringResults)
+        forwardScatteringResults.save(ic.forwardScatteringSavePath)
 
 
 """
@@ -346,17 +337,27 @@ def fitNcpToWorkspace(ws):
     dataY, dataX, dataE = loadWorkspaceIntoArrays(ws)                     
     resolutionPars, instrPars, kinematicArrays, ySpacesForEachMass = prepareFitArgs(dataX)
     
-    # Prepare arrays to be iterated over in a matrix
-    # dataMatrixForFit = np.stack(
-    #     (dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
-    #     axis=1
-    #     )
-    pool = mp.Pool(processes=mp.cpu_count())
-    fitPars = np.array(pool.starmap(
-        fitNcpToSingleSpec, 
-        zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
-        ))
-    pool.close()
+    if ic.withMultiprocessing:
+        pool = mp.Pool(processes=mp.cpu_count())
+        fitPars = np.array(pool.starmap(
+            partial(fitNcpToSingleSpec, ic=ic), 
+            zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
+            ))
+        pool.close()
+
+        # def fit_helper(args):
+        #     fitNcpToSingleSpec(*args)
+
+        # fitPars = np.array(ex.starmap(
+        #     partial(fitNcpToSingleSpec, ic=ic), 
+        #     zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
+        #     ))
+        
+    else:
+        fitPars = np.array(list(map(
+            partial(fitNcpToSingleSpec, ic=ic), 
+            dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays
+            )))       
 
     fitParsObj = FitParameters(fitPars)
     fitParsObj.printPars()
@@ -466,7 +467,7 @@ def convertDataXToYSpacesForEachMass(dataX, masses, delta_Q, delta_E):
     return ySpacesForEachMass
 
 
-def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays):
+def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays, ic):
     """Fits the NCP and returns the best fit parameters for one spectrum"""
 
     if np.all(dataY == 0) | np.all(np.isnan(dataY)): 
@@ -478,7 +479,7 @@ def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPa
     result = optimize.minimize(
         errorFunction, 
         scaledPars, 
-        args=(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
+        args=(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays, ic),
         method='SLSQP', 
         bounds = scaledBounds, 
         constraints=ic.constraints
@@ -492,11 +493,11 @@ def fitNcpToSingleSpec(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPa
     return np.append(specFitPars, [result["fun"] / noDegreesOfFreedom, result["nit"]])
 
 
-def errorFunction(scaledPars, dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays):
+def errorFunction(scaledPars, dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays, ic):
     """Error function to be minimized, operates in TOF space"""
 
     unscaledPars = scaledPars / ic.scalingFactors
-    ncpForEachMass, ncpTotal = calculateNcpSpec(unscaledPars, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
+    ncpForEachMass, ncpTotal = calculateNcpSpec(unscaledPars, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays, ic)
 
     if np.all(dataE == 0) | np.all(np.isnan(dataE)):
         # This condition is not usually satisfied but in the exceptional case that it is,
@@ -508,12 +509,12 @@ def errorFunction(scaledPars, dataY, dataE, ySpacesForEachMass, resolutionPars, 
     return np.sum(chi2)
 
 
-def calculateNcpSpec(unscaledPars, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays):    
+def calculateNcpSpec(unscaledPars, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays, ic):    
     """Creates a synthetic C(t) to be fitted to TOF values of a single spectrum, from J(y) and resolution functions
        Shapes: datax (1, n), ySpacesForEachMass (4, n), res (4, 2), deltaQ (1, n), E0 (1,n),
        where n is no of bins"""
     
-    masses, intensities, widths, centers = prepareArraysFromPars(ic.masses, unscaledPars) 
+    masses, intensities, widths, centers = prepareArraysFromPars(ic, unscaledPars) 
     v0, E0, deltaE, deltaQ = kinematicArrays
     
     gaussRes, lorzRes = caculateResolutionForEachMass(
@@ -530,12 +531,12 @@ def calculateNcpSpec(unscaledPars, ySpacesForEachMass, resolutionPars, instrPars
     return ncpForEachMass, ncpTotal
 
 
-def prepareArraysFromPars(masses, initPars):
+def prepareArraysFromPars(ic, initPars):
     """Extracts the intensities, widths and centers from the fitting parameters
         Reshapes all of the arrays to collumns, for the calculation of the ncp,"""
 
     shapeOfArrays = (ic.noOfMasses, 1)
-    masses = masses.reshape(shapeOfArrays)    
+    masses = ic.masses.reshape(shapeOfArrays)    
     intensities = initPars[::3].reshape(shapeOfArrays)
     widths = initPars[1::3].reshape(shapeOfArrays)
     centers = initPars[2::3].reshape(shapeOfArrays)  
@@ -556,7 +557,7 @@ def caculateResolutionForEachMass(masses, ySpacesForEachMass, centers, resolutio
 def kinematicsAtYCenters(ySpacesForEachMass, centers, kinematicArrays):
     """v0, E0, deltaE, deltaQ at the peak of the ncpTotal for each mass"""
 
-    shapeOfArrays = (ic.noOfMasses, 1)
+    shapeOfArrays = (len(ySpacesForEachMass), 1)
     proximityToYCenters = np.abs(ySpacesForEachMass - centers)
     yClosestToCenters = proximityToYCenters.min(axis=1).reshape(shapeOfArrays)
     yCentersMask = proximityToYCenters == yClosestToCenters
@@ -578,7 +579,7 @@ def kinematicsAtYCenters(ySpacesForEachMass, centers, kinematicArrays):
 
 def calcGaussianResolution(masses, v0, E0, delta_E, delta_Q, resolutionPars, instrPars):
     # Currently the function that takes the most time in the fitting
-    if masses.shape != (ic.noOfMasses, 1):
+    if masses.shape != (len(masses), 1):
         raise ValueError("The shape of the masses array needs to be a collumn!")
 
     det, plick, angle, T0, L0, L1 = instrPars
@@ -612,7 +613,7 @@ def calcGaussianResolution(masses, v0, E0, delta_E, delta_Q, resolutionPars, ins
 
 
 def calcLorentzianResolution(masses, v0, E0, delta_E, delta_Q, resolutionPars, instrPars):
-    if masses.shape != (ic.noOfMasses, 1):
+    if masses.shape != (len(masses), 1):
         raise ValueError("The shape of the masses array needs to be a collumn!")
         
     det, plick, angle, T0, L0, L1 = instrPars
@@ -744,7 +745,7 @@ def buildNcpFromSpec(initPars, ySpacesForEachMass, resolutionPars, instrPars, ki
     if np.all(np.isnan(initPars)):
         return np.full(ySpacesForEachMass.shape, np.nan)
     
-    ncpForEachMass, ncpTotal = calculateNcpSpec(initPars, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)        
+    ncpForEachMass, ncpTotal = calculateNcpSpec(initPars, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays, ic)        
     return ncpForEachMass
 
 

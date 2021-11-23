@@ -5,15 +5,18 @@ import numpy.testing as nptest
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from jupyterthemes import jtplot
-jtplot.style()
 np.set_printoptions(suppress=True, precision=8, linewidth=150)
 # plt.style.use('dark_background')
 
 currentPath = Path(__file__).absolute().parent  # Path to the repository
 
-pathToOriginal = currentPath / "cleaning" / "starter_forward.npz" 
-pathToOptimized = currentPath / "cleaning" / "current_forward.npz" 
+forward = False
+if forward:
+    pathToOriginal = currentPath / "cleaning" / "starter_forward.npz" 
+    pathToOptimized = currentPath / "cleaning" / "current_forward.npz" 
+else:
+    pathToOriginal = currentPath / "cleaning" / "starter_backward.npz" 
+    pathToOptimized = currentPath / "cleaning" / "current_backward.npz" 
 
 class TestFitParameters(unittest.TestCase):
     def setUp(self):
