@@ -5,6 +5,8 @@ from scipy import optimize
 from scipy import ndimage
 import time
 from pathlib import Path
+import multiprocessing as mp
+from multiprocessing import freeze_support
 
 # Format print output of arrays
 np.set_printoptions(suppress=True, precision=4, linewidth=150)
@@ -44,9 +46,9 @@ class InitialConditions:
     forwardScatteringProcedure = True
 
     # Paths to save results for back and forward scattering
-    pathForTesting = repoPath / "tests" / "fixatures"  
-    forwardScatteringSavePath = pathForTesting / "4iter_forward_GB_MS_opt.npz" 
-    backScatteringSavePath = pathForTesting / "4iter_backward_MS_opt.npz"
+    pathForTesting = repoPath / "tests" / "cleaning"  
+    forwardScatteringSavePath = pathForTesting / "current_forward.npz" 
+    backScatteringSavePath = pathForTesting / "current_backward.npz"
 
 
     def setBackscatteringInitialConditions(self):
@@ -82,14 +84,14 @@ class InitialConditions:
         ])
         self.constraints = ()
 
-        self.noOfMSIterations = 4     #4
+        self.noOfMSIterations = 1     #4
         self.firstSpec = 3    #3
         self.lastSpec = 134    #134
 
         # Boolean Flags to control script
         self.loadWsFromUserPathFlag = True
         self.scaleParsFlag = False
-        self.MSCorrectionFlag = True
+        self.MSCorrectionFlag = True       # Original True
         self.GammaCorrectionFlag = False
 
         self.firstSpecIdx = 0
@@ -141,15 +143,15 @@ class InitialConditions:
         ])
         self.constraints = ()
 
-        self.noOfMSIterations = 4     #4
+        self.noOfMSIterations = 1     #4
         self.firstSpec = 144   #144
         self.lastSpec = 182    #182
 
         # Boolean Flags to control script
         self.loadWsFromUserPathFlag = True
         self.scaleParsFlag = False
-        self.MSCorrectionFlag = True
-        self.GammaCorrectionFlag = True
+        self.MSCorrectionFlag = True         # Original True
+        self.GammaCorrectionFlag = True        # Original True
 
         # Parameters to control fit in Y-Space
         self.symmetriseHProfileUsingAveragesFlag = False
@@ -176,31 +178,44 @@ class InitialConditions:
 
 # This is the only variable with global behaviour, all functions are defined to use attributes of ic
 ic = InitialConditions() 
+if ic.backScatteringProcedure:
+    ic.setBackscatteringInitialConditions()
+else:
+    ic.setForwardScatteringInitialConditions()
 
 
 def main():
-    if ic.backScatteringProcedure:
-        ic.setBackscatteringInitialConditions()
-        wsFinal, backScatteringResults = iterativeFitForDataReduction()
-        backScatteringResults.save(ic.backScatteringSavePath)
+    wsFinal, ScatteringResults = iterativeFitForDataReduction()
 
-    if ic.forwardScatteringProcedure:
-        ic.setForwardScatteringInitialConditions()
+    if ~ic.backScatteringProcedure:
+        fitInYSpaceProcedure(wsFinal, ScatteringResults)
 
-        try:  
-            backMeanWidths = backScatteringResults.resultsList[0][-1]
-            ic.initPars[4::3] = backMeanWidths
-            ic.bounds[4::3] = backMeanWidths[:, np.newaxis] * np.ones((1,2))
-            print("\nChanged ic according to mean widhts from backscattering:\n",
-                "Forward scattering initial fitting parameters:\n", ic.initPars,
-                "\nForward scattering initial fitting bounds:\n", ic.bounds)
-        except UnboundLocalError:
-            print("Using the unchanged ic for forward scattering ...")
-            pass
+    ScatteringResults.save(ic.backScatteringSavePath)
 
-        wsFinal, forwardScatteringResults = iterativeFitForDataReduction()
-        fitInYSpaceProcedure(wsFinal, forwardScatteringResults)
-        forwardScatteringResults.save(ic.forwardScatteringSavePath)
+
+# def main():
+#     if ic.backScatteringProcedure:
+#         ic.setBackscatteringInitialConditions()
+#         wsFinal, backScatteringResults = iterativeFitForDataReduction()
+#         backScatteringResults.save(ic.backScatteringSavePath)
+
+#     if ic.forwardScatteringProcedure:
+#         ic.setForwardScatteringInitialConditions()
+
+#         try:  
+#             backMeanWidths = backScatteringResults.resultsList[0][-1]
+#             ic.initPars[4::3] = backMeanWidths
+#             ic.bounds[4::3] = backMeanWidths[:, np.newaxis] * np.ones((1,2))
+#             print("\nChanged ic according to mean widhts from backscattering:\n",
+#                 "Forward scattering initial fitting parameters:\n", ic.initPars,
+#                 "\nForward scattering initial fitting bounds:\n", ic.bounds)
+#         except UnboundLocalError:
+#             print("Using the unchanged ic for forward scattering ...")
+#             pass
+
+#         wsFinal, forwardScatteringResults = iterativeFitForDataReduction()
+#         fitInYSpaceProcedure(wsFinal, forwardScatteringResults)
+#         forwardScatteringResults.save(ic.forwardScatteringSavePath)
 
 
 """
@@ -331,11 +346,18 @@ def fitNcpToWorkspace(ws):
     dataY, dataX, dataE = loadWorkspaceIntoArrays(ws)                     
     resolutionPars, instrPars, kinematicArrays, ySpacesForEachMass = prepareFitArgs(dataX)
     
-    # Fit all spectrums
-    fitPars = np.array(list(map(
+    # Prepare arrays to be iterated over in a matrix
+    # dataMatrixForFit = np.stack(
+    #     (dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays),
+    #     axis=1
+    #     )
+    pool = mp.Pool(processes=mp.cpu_count())
+    fitPars = np.array(pool.starmap(
         fitNcpToSingleSpec, 
-        dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays
-    )))
+        zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
+        ))
+    pool.close()
+
     fitParsObj = FitParameters(fitPars)
     fitParsObj.printPars()
     meanWidths, meanIntensityRatios = fitParsObj.getMeanWidthsAndIntensities()
@@ -1190,8 +1212,9 @@ class resultsObject:
                  popt=self.popt, perr=self.perr)
 
 
-#if __name__=="__main__":
-start_time = time.time()
-main()
-end_time = time.time()
-print("running time: ", end_time-start_time, " seconds")
+if __name__=="__main__":
+    freeze_support()
+    start_time = time.time()
+    main()
+    end_time = time.time()
+    print("running time: ", end_time-start_time, " seconds")
