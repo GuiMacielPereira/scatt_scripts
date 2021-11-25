@@ -1,6 +1,6 @@
 import multiprocessing
 import numpy as np
-import mantid
+#import mantid
 from mantid.simpleapi import *
 from scipy import optimize
 from scipy import ndimage
@@ -9,7 +9,7 @@ from pathlib import Path
 import multiprocessing as mp
 from multiprocessing import freeze_support
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor 
 
 # Format print output of arrays
 np.set_printoptions(suppress=True, precision=4, linewidth=150)
@@ -328,6 +328,9 @@ def createSlabGeometry():
         + "</cuboid>"
     CreateSampleShape(ic.name, xml_str)
 
+def fitNcpHelper(args, ic):
+    return partial(fitNcpToSingleSpec, ic=ic)(*args)
+
 
 def fitNcpToWorkspace(ws):
     """Firstly calculates matrices for all spectrums,
@@ -338,21 +341,18 @@ def fitNcpToWorkspace(ws):
     resolutionPars, instrPars, kinematicArrays, ySpacesForEachMass = prepareFitArgs(dataX)
     
     if ic.withMultiprocessing:
-        pool = mp.Pool(processes=mp.cpu_count())
-        fitPars = np.array(pool.starmap(
-            partial(fitNcpToSingleSpec, ic=ic), 
-            zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
-            ))
-        pool.close()
-
-        # def fit_helper(args):
-        #     return partial(fitNcpToSingleSpec, ic=ic)(*args)
-
-
-        # fitPars = np.array(ex.starmap(
+        # pool = mp.Pool(processes=mp.cpu_count())
+        # fitPars = np.array(pool.starmap(
         #     partial(fitNcpToSingleSpec, ic=ic), 
         #     zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
         #     ))
+        # pool.close()
+
+        with ProcessPoolExecutor() as executor:        # with statement calls shutdown() automatically
+            fitPars = np.array(list(executor.map(
+                partial(fitNcpHelper, ic=ic), 
+                zip(dataY, dataE, ySpacesForEachMass, resolutionPars, instrPars, kinematicArrays)
+                )))
         
     else:
         fitPars = np.array(list(map(
