@@ -9,7 +9,7 @@ from pathlib import Path
 import multiprocessing as mp
 from multiprocessing import freeze_support
 from functools import partial
-from concurrent.futures import ProcessPoolExecutor as ex
+from concurrent.futures import ProcessPoolExecutor
 
 # Format print output of arrays
 np.set_printoptions(suppress=True, precision=4, linewidth=150)
@@ -346,7 +346,8 @@ def fitNcpToWorkspace(ws):
         pool.close()
 
         # def fit_helper(args):
-        #     fitNcpToSingleSpec(*args)
+        #     return partial(fitNcpToSingleSpec, ic=ic)(*args)
+
 
         # fitPars = np.array(ex.starmap(
         #     partial(fitNcpToSingleSpec, ic=ic), 
