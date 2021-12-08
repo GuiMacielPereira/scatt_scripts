@@ -53,7 +53,7 @@ class InitialConditions:
     forwardScatteringSavePath = pathForTesting / "current_forward.npz" 
     backScatteringSavePath = pathForTesting / "current_backward.npz"
 
-    withMultiprocessing = True
+    withMultiprocessing = False
 
     def setBackscatteringInitialConditions(self):
         # Parameters to load Raw and Empty Workspaces
@@ -329,6 +329,7 @@ def createSlabGeometry():
     CreateSampleShape(ic.name, xml_str)
 
 def fitNcpHelper(args, ic):
+    """Function to unpack arguments from mapping"""
     return partial(fitNcpToSingleSpec, ic=ic)(*args)
 
 
