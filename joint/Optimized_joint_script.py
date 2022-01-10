@@ -45,8 +45,8 @@ class InitialConditions:
     vertical_width, horizontal_width, thickness = 0.1, 0.1, 0.001  # Expressed in meters
   
     # Choose type of scattering, when both True, the mean widths from back are used in ic of front
-    backScatteringProcedure = True
-    forwardScatteringProcedure = False
+    backScatteringProcedure = False
+    forwardScatteringProcedure = True
 
     # Paths to save results for back and forward scattering
     pathForTesting = repoPath / "tests" / "cleaning"  

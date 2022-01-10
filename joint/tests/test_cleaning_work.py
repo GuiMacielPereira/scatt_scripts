@@ -10,7 +10,7 @@ np.set_printoptions(suppress=True, precision=8, linewidth=150)
 
 currentPath = Path(__file__).absolute().parent  # Path to the repository
 
-forward = False
+forward = True
 if forward:
     pathToOriginal = currentPath / "cleaning" / "starter_forward.npz" 
     pathToOptimized = currentPath / "cleaning" / "current_forward.npz" 
