@@ -5,6 +5,8 @@ import numpy.testing as nptest
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+# from jupyterthemes import jtplot
+# jtplot.style()
 np.set_printoptions(suppress=True, precision=8, linewidth=150)
 # plt.style.use('dark_background')
 
