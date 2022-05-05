@@ -24,25 +24,30 @@ def runJointBootstrap(bckwdIC, fwdIC, nSamples, yFitIC, checkUserIn=True, fastBo
 
 
 def runBootstrap(inputIC, nSamples, yFitIC, checkUserIn, fastBootstrap):
-    """inutIC can have one or two (back, forward) IC inputs."""
+    """
+    Runs main procedure for each bootstrap replica (created from the residuals)
+    inputIC can have one or two (back, forward) IC inputs.
+    """
 
-    setICsToDefault(inputIC, yFitIC, nSamples)
+    # setICsToDefault(inputIC, yFitIC)
 
-    t0 = time.time()
-    parentResults = runMainProcedure(inputIC, yFitIC)
-    t1 = time.time()
+    # # t0 = time.time()
+    # parentResults = runMainProcedure(inputIC, yFitIC)
+    # # t1 = time.time()
 
-    if checkUserIn:
-        userIn = checkUserInput(t1-t0, nSamples)
-        if (userIn != "y") and (userIn != "Y"): return
+    # parentWSnNCPs = selectParentWorkspaces(inputIC, fastBootstrap)
+    # checkResiduals(parentWSnNCPs)
 
-    parentWSnNCPs = selectParentWorkspaces(inputIC, fastBootstrap)
-    checkResiduals(parentWSnNCPs)
-    parentWSNCPSavePaths = convertWSToSavePaths(parentWSnNCPs)
+    parentResults, parentWSnNCP = runOriginalBeforeBootstrap(inputIC, yFitIC, fastBootstrap)
 
-    bootResults = initializeResults(parentResults, nSamples)
+    # if checkUserIn:
+    #     userIn = checkUserInput(t1-t0, nSamples)
+    #     if (userIn != "y") and (userIn != "Y"): return
 
     # Form each bootstrap workspace and run ncp fit with MS corrections
+    setOutputDirectories(inputIC, nSamples)
+    parentWSNCPSavePaths = convertWSToSavePaths(parentWSnNCP)
+    bootResults = initializeResults(parentResults, nSamples)
     for j in range(nSamples):
         AnalysisDataService.clear()
 
@@ -55,11 +60,68 @@ def runBootstrap(inputIC, nSamples, yFitIC, checkUserIn, fastBootstrap):
 
         storeBootIter(bootResults, j, iterResults)
         saveBootstrapResults(bootResults, inputIC, fastBootstrap)
-            
     return bootResults
 
 
-def setICsToDefault(inputIC, yFitIC, nSamples):
+def runJackknife(inputIC, yFitIC, checkUserIn, fastBootstrap):
+    """
+    Runs main procedure for each bootstrap replica (created from the residuals)
+    inputIC can have one or two (back, forward) IC inputs.
+    """
+
+    # setICsToDefault(inputIC, yFitIC)
+
+    # # t0 = time.time()
+    # parentResults = runMainProcedure(inputIC, yFitIC)
+    # # t1 = time.time()
+
+    # parentWSnNCPs = selectParentWorkspaces(inputIC, fastBootstrap)
+    # checkResiduals(parentWSnNCPs)
+
+    parentResults, parentWSnNCP = runOriginalBeforeBootstrap(inputIC, yFitIC, fastBootstrap)
+
+    # if checkUserIn:
+    #     userIn = checkUserInput(t1-t0, nSamples)
+    #     if (userIn != "y") and (userIn != "Y"): return
+
+    # For the Jackknife, one sample per point, so nSamples = no of points
+    nSamples = parentWSnNCP[0][0].dataY(0).size
+    runningJackknife = True
+
+    setOutputDirectories(inputIC, nSamples, runningJackknife)
+    parentWSNCPSavePaths = convertWSToSavePaths(parentWSnNCP)
+    bootResults = initializeResults(parentResults, nSamples)
+    for j in range(nSamples):
+        AnalysisDataService.clear()
+
+        bootInputWS = createBootstrapWS(parentWSNCPSavePaths, runningJackknife)
+
+        plugBootWSIntoIC(inputIC, bootInputWS, fastBootstrap)   
+
+        # Run procedure for bootstrap ws
+        iterResults = runMainProcedure(inputIC, yFitIC)
+
+        storeBootIter(bootResults, j, iterResults)
+        saveBootstrapResults(bootResults, inputIC, fastBootstrap)
+    return bootResults
+
+
+def runOriginalBeforeBootstrap(inputIC, yFitIC, fastBootstrap):
+    """Runs unaltered procedure and extracts parent workspaces according to fast/slow bootstrap."""
+    
+    setICsToDefault(inputIC, yFitIC)
+    parentResults = runMainProcedure(inputIC, yFitIC)
+    parentWSnNCP = selectParentWorkspaces(inputIC, fastBootstrap)
+    checkResiduals(parentWSnNCP)   
+    return parentResults, parentWSnNCP
+
+
+
+# def runJackknife(inputIC, yFitIC, checkUserIn, fastJack):
+
+
+
+def setICsToDefault(inputIC, yFitIC):
     """Disables some features of yspace fit, makes sure the default """
     # Disable global fit 
     yFitIC.globalFitFlag = False
@@ -71,19 +133,26 @@ def setICsToDefault(inputIC, yFitIC, nSamples):
     for IC in inputIC:    # Default is not to run with bootstrap ws
         IC.bootSample = False
 
-    # Form bootstrap output paths
 
-    # Select script name and experiments path
+def setOutputDirectories(inputIC, nSamples, runJackknife=False):
+    "Forms Bootstrap output paths"
+
+     # Select script name and experiments path
     sampleName = inputIC[0].scriptName   # Name of sample currently running
     experimentsPath = currentPath/".."/".."/"experiments"
 
-    bootOutPath = experimentsPath / sampleName / "bootstrap_data"
+    if runJackknife:
+        bootOutPath = experimentsPath / sampleName / "jackknife_data"
+    else:
+        bootOutPath = experimentsPath / sampleName / "bootstrap_data"
     bootOutPath.mkdir(exist_ok=True)
 
     quickPath = bootOutPath / "quick"
     slowPath = bootOutPath / "slow"
     quickPath.mkdir(exist_ok=True)
     slowPath.mkdir(exist_ok=True)
+
+    jackOutPath = experimentsPath / sampleName / "jacknnife_data"
 
     for IC in inputIC:    # Make save paths for .npz files
         # Build Filename based on ic
@@ -100,8 +169,7 @@ def setICsToDefault(inputIC, yFitIC, nSamples):
         IC.bootQuickSavePath = quickPath / bootName
         IC.bootQuickYFitSavePath = quickPath / bootNameYFit
         IC.bootSlowSavePath = slowPath / bootName
-        IC.bootSlowYFitSavePath = slowPath / bootNameYFit
-    
+        IC.bootSlowYFitSavePath = slowPath / bootNameYFit   
 
 
 def runMainProcedure(inputIC, yFitIC):
@@ -272,6 +340,31 @@ def createBootstrapWS(parentWSNCPSavePaths):
             wsBoot.dataY(i)[:-1] = row     # Last column will be ignored in ncp fit anyway
 
         assert np.all(wsBoot.extractY()[:, :-1] == bootDataY), "Bootstrap data not being correctly passed onto ws."
+
+        bootInputWS.append(wsBoot)
+    return bootInputWS
+
+
+def createJackknifeWS(parentWSNCPSavePaths, j):
+    bootInputWS = []
+    for (parentWSPath, totNcpWSPath) in parentWSNCPSavePaths:
+        parentWS, totNcpWS = loadWorkspacesFromPath(parentWSPath, totNcpWSPath)
+        
+        #TODO: Need to find a way of cutting a column out a ws
+        
+        # dataY = parentWS.extractY()[:, :-1]
+        # totNcp = totNcpWS.extractY()[:, :]     
+
+        # residuals = dataY - totNcp
+
+        # bootRes = bootstrapResidualsSample(residuals)
+        # bootDataY = totNcp + bootRes
+
+        # wsBoot = CloneWorkspace(parentWS, OutputWorkspace=parentWS.name()+"_Bootstrap")
+        # for i, row in enumerate(bootDataY):
+        #     wsBoot.dataY(i)[:-1] = row     # Last column will be ignored in ncp fit anyway
+
+        # assert np.all(wsBoot.extractY()[:, :-1] == bootDataY), "Bootstrap data not being correctly passed onto ws."
 
         bootInputWS.append(wsBoot)
     return bootInputWS
