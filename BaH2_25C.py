@@ -44,7 +44,7 @@ class GeneralInitialConditions:
 class BackwardInitialConditions(GeneralInitialConditions):
     # InstrParsPath = ipFilesPath / "ip2018_3.par" 
 
-    HToMass0Ratio = 41.8 #1.4  # Set to None when either unknown or H not present
+    HToMass0Ratio = None  #1.4  # Set to None when either unknown or H not present
 
     # Masses, instrument parameters and initial fitting parameters
     masses = np.array([16, 27, 28, 93, 137.3])
@@ -66,7 +66,7 @@ class BackwardInitialConditions(GeneralInitialConditions):
         ])
     constraints = ()
 
-    noOfMSIterations = 1     #4
+    noOfMSIterations = 2     #4
     firstSpec = 3    #3
     lastSpec = 134   #134
 
@@ -137,7 +137,7 @@ class BootstrapInitialConditions:
 
 class UserScriptControls:
     # Choose main procedure to run
-    procedure = "FORWARD"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
+    procedure = "JOINT"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
 
     # Choose on which ws to perform the fit in y space
     fitInYSpace = None    # Options: None, "BACKWARD", "FORWARD", "JOINT"

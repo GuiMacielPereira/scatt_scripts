@@ -123,7 +123,7 @@ class ForwardInitialConditions(GeneralInitialConditions):
 
 # This class inherits all of the atributes in ForwardInitialConditions
 class YSpaceFitInitialConditions:
-    showPlots = True
+    showPlots = False
     symmetrisationFlag = False
     rebinParametersForYSpaceFit = "-20, 0.5, 20"    # Needs to be symetric
     singleGaussFitToHProfile = False     # When False, use Hermite expansion
@@ -141,7 +141,7 @@ class BootstrapInitialConditions:
 
 class UserScriptControls:
     # Choose main procedure to run
-    procedure = "JOINT"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
+    procedure = "FORWARD"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
 
     # Choose on which ws to perform the fit in y space
     fitInYSpace = "FORWARD"    # Options: None, "BACKWARD", "FORWARD", "JOINT"
@@ -153,7 +153,7 @@ class UserScriptControls:
 
 class BootstrapAnalysis:
     # Flag below controls whether or not analysis is run
-    runAnalysis = True   
+    runAnalysis = False  
 
     # Choose whether to filter averages as done in original procedure
     filterAvg = False                 # True discards some unreasonable values of widths and intensities

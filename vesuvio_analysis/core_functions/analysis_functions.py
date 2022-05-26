@@ -753,7 +753,8 @@ def calcMSCorrectionSampleProperties(ic, meanWidths, meanIntensityRatios):
         if (ic.HToMass0Ratio != None):  # If H is present, ratio is a number
             masses = np.append(masses, 1.0079)
             meanWidths = np.append(meanWidths, 5.0)
-            HIntensity = ic.HToMass0Ratio * meanIntensityRatios[0]
+            # HIntensity = ic.HToMass0Ratio * meanIntensityRatios[0]
+            HIntensity = ic.HToMass0Ratio * meanIntensityRatios[ic.HRatioMassIdx]
             meanIntensityRatios = np.append(meanIntensityRatios, HIntensity)
             meanIntensityRatios /= np.sum(meanIntensityRatios)
 

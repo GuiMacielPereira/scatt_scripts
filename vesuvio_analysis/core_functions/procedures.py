@@ -53,12 +53,18 @@ def runHPresentAndHRatioNotKnown(bckwdIC, fwdIC):
     wsFinal, fwdScatResults = iterativeFitForDataReduction(fwdIC)
     for i in range(int(nIter)):    # Loop until convergence is achieved
 
+        # ---- New addition -----
+        bckwdIC.HRatioMassIdx = np.argmax(fwdScatResults.all_mean_intensities[-1, 1:]) # Idx will be already corrected for back masses
+        print(f"\n\n---------\nIdx for H ratio: {bckwdIC.HRatioMassIdx}\n-------\n\n")
+        #----- End of addition -------
+
         AnalysisDataService.clear()    # Clears all Workspaces
 
-        bckwdIC.HToMass0Ratio = calculateHToMass0Ratio(fwdScatResults)
+        bckwdIC.HToMass0Ratio = calculateHToMass0Ratio(fwdScatResults, bckwdIC.HRatioMassIdx)
         wsFinal, bckwdScatResults, fwdScatResults = runJoint(bckwdIC, fwdIC)
 
-    print(f"\n\nFinal estimate for HToMass0Ratio: {calculateHToMass0Ratio(fwdScatResults):.3f}\n")
+    print(f"\n\n---------\nIdx for H ratio: {bckwdIC.HRatioMassIdx}\n-------\n\n")
+    print(f"\n\nFinal estimate for HToMass0Ratio: {calculateHToMass0Ratio(fwdScatResults, bckwdIC.HRatioMassIdx):.3f}\n")
     return wsFinal, bckwdScatResults, fwdScatResults
 
 
@@ -72,19 +78,20 @@ def askUserNoOfIterations():
     return nIter
  
 
-def calculateHToMass0Ratio(fwdScatResults):
+def calculateHToMass0Ratio(fwdScatResults, HRatioMassIdx):
     fwdMeanIntensityRatios = fwdScatResults.all_mean_intensities[-1] 
-    return fwdMeanIntensityRatios[0] / fwdMeanIntensityRatios[1]
+    # return fwdMeanIntensityRatios[0] / fwdMeanIntensityRatios[1]
+    return fwdMeanIntensityRatios[0] / fwdMeanIntensityRatios[HRatioMassIdx+1]
 
 
 def runJoint(bckwdIC, fwdIC):
     wsFinal, bckwdScatResults = iterativeFitForDataReduction(bckwdIC)
-    setInitFwdParsFromBackResults(bckwdScatResults, bckwdIC.HToMass0Ratio, fwdIC)
+    setInitFwdParsFromBackResults(bckwdScatResults, bckwdIC.HToMass0Ratio, fwdIC, bckwdIC.HRatioMassIdx)
     wsFinal, fwdScatResults = iterativeFitForDataReduction(fwdIC)
     return wsFinal, bckwdScatResults, fwdScatResults   
 
 
-def setInitFwdParsFromBackResults(bckwdScatResults, HToMass0Ratio, fwdIC):
+def setInitFwdParsFromBackResults(bckwdScatResults, HToMass0Ratio, fwdIC, HRatioMassIdx):
     """
     Used to pass mean widths and intensities from back scattering onto intial conditions of forward scattering.
     Checks if H is present and adjust the passing accordingly:
@@ -101,7 +108,8 @@ def setInitFwdParsFromBackResults(bckwdScatResults, HToMass0Ratio, fwdIC):
         assert len(backMeanWidths) == fwdIC.noOfMasses-1, "H Mass present, no of masses in front needs to be bigger than back by 1."
 
         # Use H ratio to calculate intensity ratios 
-        HIntensity = HToMass0Ratio * backMeanIntensityRatios[0]
+        # HIntensity = HToMass0Ratio * backMeanIntensityRatios[0]
+        HIntensity = HToMass0Ratio * backMeanIntensityRatios[HRatioMassIdx]
         initialFwdIntensityRatios = np.append([HIntensity], backMeanIntensityRatios)
         initialFwdIntensityRatios /= np.sum(initialFwdIntensityRatios)
 

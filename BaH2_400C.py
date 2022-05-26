@@ -44,7 +44,7 @@ class GeneralInitialConditions:
 class BackwardInitialConditions(GeneralInitialConditions):
     # InstrParsPath = ipFilesPath / "ip2018_3.par" 
 
-    HToMass0Ratio = 31.12  # Set to None when either unknown or H not present
+    HToMass0Ratio = None #31.12  # Set to None when either unknown or H not present
 
     # Masses, instrument parameters and initial fitting parameters
     masses = np.array([16, 27, 28, 93, 137.3])
@@ -119,9 +119,9 @@ class ForwardInitialConditions(GeneralInitialConditions):
 
 # This class inherits all of the atributes in ForwardInitialConditions
 class YSpaceFitInitialConditions:
-    showPlots = True
+    showPlots = False
     symmetrisationFlag = False
-    rebinParametersForYSpaceFit = "-15, 0.5, 15"    # Needs to be symetric
+    rebinParametersForYSpaceFit = "-25, 0.5, 25"    # Needs to be symetric
     singleGaussFitToHProfile = True     # When False, use Hermite expansion
     globalFitFlag = True
     forceManualMinos = False
@@ -137,7 +137,7 @@ class BootstrapInitialConditions:
 
 class UserScriptControls:
     # Choose main procedure to run
-    procedure = "JOINT"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
+    procedure = "FORWARD"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
 
     # Choose on which ws to perform the fit in y space
     fitInYSpace = "FORWARD"    # Options: None, "BACKWARD", "FORWARD", "JOINT"
