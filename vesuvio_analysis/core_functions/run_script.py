@@ -2,7 +2,7 @@
 from vesuvio_analysis.core_functions.ICHelpers import buildFinalWSNames, completeICFromInputs, completeBootIC, completeYFitIC
 from vesuvio_analysis.core_functions.bootstrap import runBootstrap
 from vesuvio_analysis.core_functions.fit_in_yspace import fitInYSpaceProcedure
-from vesuvio_analysis.core_functions.procedures import runIndependentIterativeProcedure, runJointBackAndForwardProcedure
+from vesuvio_analysis.core_functions.procedures import runIndependentIterativeProcedure, runJointBackAndForwardProcedure, isHPresent
 from mantid.api import mtd
 
 
@@ -22,6 +22,13 @@ def runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC, fwdIC, yFitIC, 
             return None 
 
     elif userCtr.procedure == "BACKWARD":
+        if isHPresent(fwdIC.masses) and (bckwdIC.HToMassIdxRatio==None) and (bckwdIC.noOfMSIterations>0):
+            raise ValueError ("""
+                Tried to run independent backscattering with MS corrections:
+                Need a known value for HToMassIdxRatio.
+                Run procedure='JOINT' first to activate an estimation for this value.
+                """)
+
         def runProcedure():
             return runIndependentIterativeProcedure(bckwdIC)
 

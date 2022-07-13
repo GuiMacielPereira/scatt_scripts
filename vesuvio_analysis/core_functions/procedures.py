@@ -15,8 +15,7 @@ def runIndependentIterativeProcedure(IC, clearWS=True):
     if clearWS:
         AnalysisDataService.clear()
         
-    wsFinal, ncpFitResultsObject = iterativeFitForDataReduction(IC)
-    return wsFinal, ncpFitResultsObject
+    return iterativeFitForDataReduction(IC)
 
 
 def runJointBackAndForwardProcedure(bckwdIC, fwdIC, clearWS=True):
@@ -28,14 +27,14 @@ def runJointBackAndForwardProcedure(bckwdIC, fwdIC, clearWS=True):
         AnalysisDataService.clear()
 
     if isHPresent(fwdIC.masses) and (bckwdIC.HToMassIdxRatio==None):
-        wsFinal, bckwdScatResults, fwdScatResults = runHPresentAndHRatioNotKnown(bckwdIC, fwdIC)
+        results = runHPresentAndHRatioNotKnown(bckwdIC, fwdIC)
 
     else:
         assert (isHPresent(fwdIC.masses) != (bckwdIC.HToMassIdxRatio==None)), "When H is not present, HToMassIdxRatio has to be set to None"
         
-        wsFinal, bckwdScatResults, fwdScatResults = runJoint(bckwdIC, fwdIC)
+        results = runJoint(bckwdIC, fwdIC)
 
-    return wsFinal, bckwdScatResults, fwdScatResults
+    return results
 
 
 def runHPresentAndHRatioNotKnown(bckwdIC, fwdIC):
@@ -63,7 +62,7 @@ def runHPresentAndHRatioNotKnown(bckwdIC, fwdIC):
         bckwdIC.HToMassIdxRatio = HRatio
         bckwdIC.massIdx = massIdx
 
-        wsFinal, bckwdScatResults, fwdScatResults = runJoint(bckwdIC, fwdIC)
+        results = runJoint(bckwdIC, fwdIC)
 
         HRatios.append(HRatio)
         massIdxs.append(massIdx)
@@ -74,7 +73,7 @@ def runHPresentAndHRatioNotKnown(bckwdIC, fwdIC):
 
     fwdIC.runningPreliminary = False  # Change to default since end of preliminary procedure
     
-    return wsFinal, bckwdScatResults, fwdScatResults
+    return results
 
 
 def askUserNoOfIterations():
@@ -103,7 +102,6 @@ def calculateHToMassIdxRatio(fwdScatResults):
     HRatio = fwdMeanIntensityRatios[0] / fwdIntensitiesNoH[massIdx]
 
     return massIdx, HRatio
-    # return fwdMeanIntensityRatios[0] / fwdMeanIntensityRatios[1]
 
 
 def runJoint(bckwdIC, fwdIC):
