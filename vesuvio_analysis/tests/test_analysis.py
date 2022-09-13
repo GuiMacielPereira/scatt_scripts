@@ -1,4 +1,5 @@
 
+import platform
 from vesuvio_analysis.core_functions.bootstrap import runBootstrap
 from vesuvio_analysis.core_functions.run_script import runScript
 import unittest
@@ -29,6 +30,9 @@ wsFinal, forwardScatteringResults = scattRes
 np.set_printoptions(suppress=True, precision=8, linewidth=150)
 
 oriPath = testPath / "stored_analysis.npz"   # Original data
+if platform.system() == "Linux":   # Alter path when in Linux
+    oriPath = testPath / "Linux" / "spec_164-175_iter_1_MS_GC.npz"
+
 storedResults = np.load(oriPath)
 currentResults = forwardScatteringResults
 

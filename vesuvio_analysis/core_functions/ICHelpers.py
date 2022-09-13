@@ -111,7 +111,7 @@ def setOutputDirsForSample(IC, sampleName):
         corr+="_GC"
 
     fileName = f"spec_{IC.firstSpec}-{IC.lastSpec}_iter_{IC.noOfMSIterations}{corr}"+".npz"
-    fileNameYSpace = fileName + "_ySpaceFit"+".npz"
+    fileNameYSpace = fileName.split(".")[0] + "_ySpaceFit"+".npz"
 
     IC.resultsSavePath = outputPath / fileName
     IC.ySpaceFitSavePath = outputPath / fileNameYSpace

@@ -1,18 +1,8 @@
-This file contains some information about each data file in the folder:
 
-
-spec_3-13_iter_0_nsampl_3.npz : JOINT | 275.,1.,420 | None
-spec_3-13_iter_0_ySpaceFit_nsampl_3.npz : None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
-spec_3-13_iter_0_nsampl_3.npz : JOINT | 275.,1.,420 | None
-spec_3-13_iter_0_ySpaceFit_nsampl_3.npz : None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
-spec_3-13_iter_0_nsampl_3.npz : JOINT | 275.,1.,420 | None
-spec_3-13_iter_0_ySpaceFit_nsampl_3.npz : None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
-spec_164-175_iter_1_MS_GC_nsampl_3.npz : JOINT | 110,1.,430 | None
-spec_164-175_iter_1_MS_GC_ySpaceFit_nsampl_3.npz : None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
-spec_3-13_iter_0_nsampl_3.npz : JOINT | 275.,1.,420 | None
-spec_3-13_iter_0_ySpaceFit_nsampl_3.npz : None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
-spec_164-175_iter_1_MS_GC_nsampl_3.npz : JOINT | 110,1.,430 | None
-spec_164-175_iter_1_MS_GC_ySpaceFit_nsampl_3.npz : None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
+    This file contains some information about each data file in the folder.
+    ncp data file: boot type | procedure | tof binning | masked tof range.
+    yspace fit data file: boot type | procedure | symmetrisation | rebin pars | fit model | mask type
+    
 spec_3-13_iter_0_nsampl_3.npz : JACKKNIFE | JOINT | 275.,1.,420 | None
 spec_3-13_iter_0_ySpaceFit_nsampl_3.npz : JACKKNIFE | None | True | -20, 0.5, 20 | SINGLE_GAUSSIAN | None
 spec_164-175_iter_1_MS_GC_nsampl_3.npz : JACKKNIFE | JOINT | 110,1.,430 | None

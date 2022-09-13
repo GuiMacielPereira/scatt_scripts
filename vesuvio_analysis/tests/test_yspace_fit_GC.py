@@ -1,3 +1,4 @@
+import platform
 from vesuvio_analysis.core_functions.bootstrap import runBootstrap
 from vesuvio_analysis.core_functions.run_script import runScript
 from mantid.simpleapi import Load
@@ -33,7 +34,10 @@ userCtr = UserScriptControls
 
 yFitIC.symmetrisationFlag = False
 yFitIC.fitModel = "GC_C4_C6"
+yFitIC.runMinos = False 
 oriPath = testPath / "stored_yspace_fit_GC.npz"
+if platform.system() == "Linux":
+    oriPath = testPath / "Linux" / "spec_164-175_iter_1_MS_GC_ySpaceFit_GC.npz"
 
 scattRes, yfitRes = runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC, fwdIC, yFitIC, bootIC)
 
@@ -41,7 +45,6 @@ scattRes, yfitRes = runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC,
 ySpaceFitResults = yfitRes
 
 # Test yspace
-# oriPath = testPath / "stored_yspace_fit.npz"
 storedResults = np.load(oriPath)
 currentResults = ySpaceFitResults
 

@@ -1,3 +1,4 @@
+import platform
 from vesuvio_analysis.core_functions.run_script import runScript
 import unittest
 import numpy as np
@@ -35,18 +36,11 @@ bootRes, noneRes = runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC, 
 jackBackSamples = bootRes["bckwdScat"].bootSamples
 jackFrontSamples = bootRes["fwdScat"].bootSamples
 
-
-# jackJointResults = bootRes
-
-# jackSamples = []
-# for jackRes in jackJointResults:
-#     jackSamples.append(jackRes.bootSamples)
-
-# jackBackSamples, jackFrontSamples = jackSamples
-
-
 oriJackBack = testPath / "stored_joint_jack_back.npz"
 oriJackFront = testPath / "stored_joint_jack_front.npz"
+if platform.system() == "Linux":
+    oriJackFront = testPath / "Linux" / "jack_spec_164-175_iter_1_MS_GC_nsampl_3.npz"
+    oriJackBack = testPath / "Linux" / "jack_spec_3-13_iter_0_nsampl_3.npz"
 
 class TestJointBootstrap(unittest.TestCase):
 

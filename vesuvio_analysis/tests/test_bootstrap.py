@@ -1,3 +1,4 @@
+import platform
 from vesuvio_analysis.core_functions.bootstrap import runBootstrap
 from vesuvio_analysis.core_functions.run_script import runScript
 import unittest
@@ -8,6 +9,14 @@ from .tests_IC import  scriptName, wsBackIC, wsFrontIC, bckwdIC, fwdIC, yFitIC
 testPath = Path(__file__).absolute().parent 
 
 np.random.seed(1)   # Set seed so that tests match everytime
+
+oriBootBack = testPath / "stored_boot_back.npz"
+oriBootFront = testPath / "stored_boot_front.npz"
+oriBootYFit = testPath / "stored_boot_yfit.npz"
+if platform.system() == "Linux":
+    oriBootFront = testPath / "Linux" / "boot_spec_164-175_iter_1_MS_GC_nsampl_3.npz"
+    oriBootYFit = testPath / "Linux" / "boot_spec_164-175_iter_1_MS_GC_ySpaceFit_nsampl_3.npz"
+    oriBootBack = testPath / "Linux" / "boot_spec_3-13_iter_0_nsampl_3.npz"
 
 
 class BootstrapInitialConditions:
@@ -40,22 +49,9 @@ bootRes, noneRes = runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC, 
 #TODO: Figure out why doing the two tests simultaneously fails the testing
 # Probably because running bootstrap alters the initial conditions of forward scattering
 # Test Joint procedure
-
 bootBackSamples = bootRes["bckwdScat"].bootSamples
 bootFrontSamples = bootRes["fwdScat"].bootSamples
 bootYFitSamples = bootRes["fwdYFit"].bootSamples
-
-# bootJointResults = bootRes
-
-# bootSamples = []
-# for bootRes in bootJointResults:
-#     bootSamples.append(bootRes.bootSamples)
-
-# bootBackSamples, bootFrontSamples, bootYFitSamples = bootSamples
-
-oriBootBack = testPath / "stored_boot_back.npz"
-oriBootFront = testPath / "stored_boot_front.npz"
-oriBootYFit = testPath / "stored_boot_yfit.npz"
 
 class TestJointBootstrap(unittest.TestCase):
 

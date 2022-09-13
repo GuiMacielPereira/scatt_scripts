@@ -1,3 +1,4 @@
+import platform
 from vesuvio_analysis.core_functions.run_script import runScript
 from mantid.simpleapi import Load
 from mantid.api import AnalysisDataService
@@ -16,9 +17,9 @@ for i in range(len(fwdIC.masses)):
     fileName = "wsFinal_ncp_"+str(i)+".nxs"
     Load(str(testPath / fileName), OutputWorkspace=wsFinal.name()+"_TOF_Fitted_Profile_"+str(i))
 
+
 class BootstrapInitialConditions: # Not used, but still need to pass as arg
     runBootstrap = False
-
 
 class UserScriptControls:
     runRoutine = True
@@ -32,6 +33,8 @@ userCtr = UserScriptControls
 
 yFitIC.fitModel = "SINGLE_GAUSSIAN"
 oriPath = testPath / "stored_yspace_fit.npz"
+if platform.system() == "Linux":
+    oriPath = testPath / "Linux" / "spec_164-175_iter_1_MS_GC_ySpaceFit.npz"
 
 
 scattRes, yfitRes = runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC, fwdIC, yFitIC, bootIC)
@@ -40,7 +43,6 @@ scattRes, yfitRes = runScript(userCtr, scriptName, wsBackIC, wsFrontIC, bckwdIC,
 ySpaceFitResults = yfitRes
 
 # Test yspace
-# oriPath = testPath / "stored_yspace_fit.npz"
 storedResults = np.load(oriPath)
 currentResults = ySpaceFitResults
 
