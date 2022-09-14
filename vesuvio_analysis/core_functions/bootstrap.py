@@ -474,6 +474,9 @@ def createBootstrapWS(parentWSNCPSavePaths:dict, drawGauss=False):
 
         # Draw DataY from Gaussian distribution
         if drawGauss:
+            # TODO: This is actualy the implementation of parametric bootstrap!
+            # The correct implementation is dataY + normal(0, 1) * dataE
+            # Is this the same thing?
             bootDataY = np.random.normal(dataY, dataE)  # Mean at dataY, width dataE
 
         else:   # Default, resample residuals
