@@ -110,7 +110,6 @@ def loadRawAndEmptyWsFromUserPath(ic):
     SumSpectra(InputWorkspace=ic.name+'raw', OutputWorkspace=ic.name+'raw'+'_sum')
     wsToBeFitted = CloneWorkspace(InputWorkspace=ic.name+'raw', OutputWorkspace=ic.name+"uncroped_unmasked")
 
-    # if ic.mode=="DoubleDifference":
     if ic.subEmptyFromRaw:
         Load(Filename=str(ic.userWsEmptyPath), OutputWorkspace=ic.name+"empty")
         Rebin(InputWorkspace=ic.name+'empty', Params=ic.tofBinning,
@@ -504,7 +503,7 @@ def filterWidthsAndIntensities(widthsIn, intensitiesIn, IC):
     widthDeviation = np.abs(widths - meanWidths)
     stdWidths = np.nanstd(widths, axis=1)[:, np.newaxis]  
 
-    # Put nan in places where width deviation is bigger than std
+    # Put nan in places where width deviation is bigger than 1 std
     filterMask = widthDeviation > stdWidths
     betterWidths = np.where(filterMask, np.nan, widths)
     
@@ -518,6 +517,7 @@ def filterWidthsAndIntensities(widthsIn, intensitiesIn, IC):
     else:
         pass
   
+    # Some important assertions
     assert np.all(meanWidths!=np.nan), "At least one mean of widths is nan!"
     assert np.sum(filterMask) >= 1, "No widths survive filtering condition"
     assert not(np.all(np.isnan(betterWidths))), "All filtered widths are nan"
