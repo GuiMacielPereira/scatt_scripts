@@ -33,17 +33,19 @@ def iterativeFitForDataReduction(ic):
         if iteration == ic.noOfMSIterations: break 
 
         # Replace zero columns (bins) with ncp total fit
-        # If ws has no zero column, then remains unchanged
-        if iteration == 0: wsNCPM = replaceZerosWithNCP(mtd[ic.name], ncpTotal)
+        # Initialized at first iteration, subsquent iterations are using same workspace
+        # Changes the initial workspace with NCP Mask on zero columns, used to avoid MS or GC on zero columns
+        # TODO: Check this correction is working 
+        if iteration == 0: wsRawM = replaceZerosWithNCP(mtd[ic.name], ncpTotal)
 
         CloneWorkspace(InputWorkspace=ic.name, OutputWorkspace="tmpNameWs")
 
         if ic.MSCorrectionFlag:
-            wsMS = createWorkspacesForMSCorrection(ic, mWidths, mIntRatios, wsNCPM)
+            wsMS = createWorkspacesForMSCorrection(ic, mWidths, mIntRatios, wsRawM)
             Minus(LHSWorkspace="tmpNameWs", RHSWorkspace=wsMS, OutputWorkspace="tmpNameWs")
 
         if ic.GammaCorrectionFlag:  
-            wsGC = createWorkspacesForGammaCorrection(ic, mWidths, mIntRatios, wsNCPM)
+            wsGC = createWorkspacesForGammaCorrection(ic, mWidths, mIntRatios, wsRawM)
             Minus(LHSWorkspace="tmpNameWs", RHSWorkspace=wsGC, OutputWorkspace="tmpNameWs")
 
         remaskValues(ic.name, "tmpNameWS")    # Masks cols in the same place as in ic.name
@@ -743,19 +745,19 @@ def numericalThirdDerivative(x, fun):
     return derivative
 
 
-def createWorkspacesForMSCorrection(ic, meanWidths, meanIntensityRatios, wsNCPM):
+def createWorkspacesForMSCorrection(ic, meanWidths, meanIntensityRatios, ws):
     """Creates _MulScattering and _TotScattering workspaces used for the MS correction"""
 
-    createSlabGeometry(ic, wsNCPM)    # Sample properties for MS correction 
+    createSlabGeometry(ic, ws)    # Sample properties for MS correction 
 
     sampleProperties = calcMSCorrectionSampleProperties(ic, meanWidths, meanIntensityRatios)
     print("\nThe sample properties for Multiple Scattering correction are:\n\n", 
             sampleProperties, "\n")
     
-    return createMulScatWorkspaces(ic, wsNCPM, sampleProperties)
+    return createMulScatWorkspaces(ic, ws, sampleProperties)
 
 
-def createSlabGeometry(ic, wsNCPM):
+def createSlabGeometry(ic, ws):
     half_height, half_width, half_thick = 0.5*ic.vertical_width, 0.5*ic.horizontal_width, 0.5*ic.thickness
     xml_str = \
         " <cuboid id=\"sample-shape\"> " \
@@ -765,7 +767,7 @@ def createSlabGeometry(ic, wsNCPM):
         + "<right-front-bottom-point x=\"%f\" y=\"%f\" z=\"%f\" /> " % (-half_width, -half_height, half_thick) \
         + "</cuboid>"
 
-    CreateSampleShape(wsNCPM, xml_str)
+    CreateSampleShape(ws, xml_str)
 
 
 def calcMSCorrectionSampleProperties(ic, meanWidths, meanIntensityRatios):
@@ -804,7 +806,7 @@ def createMulScatWorkspaces(ic, ws, sampleProperties):
         )
 
     _TotScattering, _MulScattering = VesuvioCalculateMS(
-        ws, 
+        ws,      # Imput ws to be corrected
         NoOfMasses=len(MS_masses), 
         SampleDensity=dens.cell(9, 1),
         AtomicProperties=sampleProperties, 
@@ -828,10 +830,10 @@ def createMulScatWorkspaces(ic, ws, sampleProperties):
     return mtd[ws.name()+"_MulScattering"]
 
 
-def createWorkspacesForGammaCorrection(ic, meanWidths, meanIntensityRatios, wsNCPM):
+def createWorkspacesForGammaCorrection(ic, meanWidths, meanIntensityRatios, ws):
     """Creates _gamma_background correction workspace to be subtracted from the main workspace"""
 
-    inputWS = wsNCPM.name()
+    inputWS = ws.name()
 
     # I do not know why, but setting these instrument parameters is required
     SetInstrumentParameter(inputWS, ParameterName='hwhm_lorentz', 
