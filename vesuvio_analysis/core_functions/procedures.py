@@ -46,7 +46,7 @@ def runPreProcToEstHRatio(bckwdIC, fwdIC):
         oriMS.append(IC.noOfMSIterations)
         IC.noOfMSIterations = 0
 
-    nIter = askUserNoOfIterations()
+    nIter = askUserNoOfIterations()    # Iterations of preliminary procedure
  
     HRatios = []   # List to store HRatios
     massIdxs = []
@@ -75,7 +75,7 @@ def runPreProcToEstHRatio(bckwdIC, fwdIC):
     for IC, ori in zip([bckwdIC, fwdIC], oriMS):
         IC.noOfMSIterations = ori
 
-    # Update the H ratio with the best estimate, chages bckwdIC outside function
+    # Update the H ratio with final estimate, chages bckwdIC outside function
     massIdx, HRatio = calculateHToMassIdxRatio(fwdScatResults)
     bckwdIC.HToMassIdxRatio = HRatio
     bckwdIC.massIdx = massIdx
