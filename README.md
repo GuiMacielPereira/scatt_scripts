@@ -2,8 +2,6 @@
 
 ## Repository for the optimized NCP analysis procedures on VESUVIO
 
-### Currently in development, daily updates and corrections.
-
 Three example scripts are provided, BaH2_500C, D_HMT and starch_80_RD, each detailing the initial conditions for each sample.
 
 Start with script starch_80_RD, includes most complete comments.
