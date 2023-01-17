@@ -477,6 +477,7 @@ def createMeansAndStdTableWS(wsName, IC, meanWidths, stdWidths, meanIntensityRat
 
 
 def calculateMeansAndStds(widthsIn, intensitiesIn, IC):
+    """Widths and Intensities shape: (noOfMasses, noOfSpec)"""
 
     betterWidths, betterIntensities = filterWidthsAndIntensities(widthsIn, intensitiesIn, IC)
     
@@ -522,8 +523,9 @@ def filterWidthsAndIntensities(widthsIn, intensitiesIn, IC):
     assert np.sum(filterMask) >= 1, "No widths survive filtering condition"
     assert not(np.all(np.isnan(betterWidths))), "All filtered widths are nan"
     assert not(np.all(np.isnan(betterIntensities))), "All filtered intensities are nan"
-    assert np.nanmax(betterWidths) != np.nanmin(betterWidths), f"All fitered widths have the same value: {np.nanmin(betterWidths)}"
-    assert np.nanmax(betterIntensities) != np.nanmin(betterIntensities), f"All fitered widths have the same value: {np.nanmin(betterIntensities)}"
+    if len(betterWidths)>1:
+        assert np.nanmax(betterWidths) != np.nanmin(betterWidths), f"All fitered widths have the same value: {np.nanmin(betterWidths)}"
+        assert np.nanmax(betterIntensities) != np.nanmin(betterIntensities), f"All fitered widths have the same value: {np.nanmin(betterIntensities)}"
    
     return betterWidths, betterIntensities
 
