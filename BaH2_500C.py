@@ -36,8 +36,6 @@ class LoadVesuvioFrontParameters:
 class GeneralInitialConditions:
     """Used to define initial conditions shared by both Back and Forward scattering"""
     
-    transmission_guess =  0.9        # Experimental value from VesuvioTransmission
-    multiple_scattering_order, number_of_events = 2, 1.e5
     # Sample slab parameters
     vertical_width, horizontal_width, thickness = 0.1, 0.1, 0.001  # Expressed in meters
 
@@ -81,6 +79,9 @@ class BackwardInitialConditions(GeneralInitialConditions):
     tofBinning="110,1.,420"                    # Binning of ToF spectra
     maskTOFRange = None     # TOF Range for the resonance peak
 
+    transmission_guess =  0.9        # Experimental value from VesuvioTransmission
+    multiple_scattering_order, number_of_events = 2, 1.e5
+
 
 class ForwardInitialConditions(GeneralInitialConditions):
 
@@ -117,6 +118,9 @@ class ForwardInitialConditions(GeneralInitialConditions):
 
     tofBinning = "110,1.,420"                 # Binning of ToF spectra
     maskTOFRange ="150, 163"     # TOF Range for the resonance peak
+
+    transmission_guess =  0.9        # Experimental value from VesuvioTransmission
+    multiple_scattering_order, number_of_events = 2, 1.e5
 
 
 class YSpaceFitInitialConditions:

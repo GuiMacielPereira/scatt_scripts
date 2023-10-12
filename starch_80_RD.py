@@ -35,9 +35,6 @@ class LoadVesuvioFrontParameters:    # Same as previous class but for forward ws
 
 class GeneralInitialConditions:
     """Used to define initial conditions shared by both Back and Forward scattering"""
-    
-    transmission_guess =  0.8537        # Experimental value from VesuvioTransmission
-    multiple_scattering_order, number_of_events = 2, 1.e5    # Used in MS correction
     vertical_width, horizontal_width, thickness = 0.1, 0.1, 0.001     # Sample slab parameters, expressed in meters
 
 
@@ -63,7 +60,7 @@ class BackwardInitialConditions(GeneralInitialConditions):
         ])
     constraints = ()
 
-    noOfMSIterations = 4     # Number of MS corrections, 0 is no correction
+    noOfMSIterations = 1     # Number of MS corrections, 0 is no correction
     firstSpec = 3    #3
     lastSpec = 134   #134
 
@@ -75,6 +72,9 @@ class BackwardInitialConditions(GeneralInitialConditions):
 
     tofBinning='275.,1.,420'   
     maskTOFRange = None              # TOF Range for the resonance peak
+
+    transmission_guess =  0.8537        # Experimental value from VesuvioTransmission
+    multiple_scattering_order, number_of_events = 2, 1.e5    # Used in MS correction
 
 
 class ForwardInitialConditions(GeneralInitialConditions):    # Same structure as above
@@ -109,9 +109,11 @@ class ForwardInitialConditions(GeneralInitialConditions):    # Same structure as
     tofBinning="110,1,430"       
     maskTOFRange = None              # TOF Range for the resonance peak
  
+    transmission_guess = 0.742   # Experimental value from VesuvioTransmission
+    multiple_scattering_order, number_of_events = 1, 1.e5    # Used in MS correction
 
 class YSpaceFitInitialConditions:
-    showPlots = True
+    showPlots = False 
     symmetrisationFlag = True
     rebinParametersForYSpaceFit = "-25, 0.5, 25"    # Needs to be symetric
     fitModel = "ANSIO_GAUSSIAN"     # Options: 'SINGLE_GAUSSIAN', 'GC_C4', 'GC_C6', 'GC_C4_C6', 'DOUBLE_WELL', 'ANSIO_GAUSSIAN'
@@ -122,7 +124,7 @@ class YSpaceFitInitialConditions:
 
 
 class UserScriptControls:
-    runRoutine = False
+    runRoutine = True 
     
     # Choose main procedure to run
     procedure = "JOINT"  # Options: None, "BACKWARD", "FORWARD", "JOINT"
@@ -143,7 +145,7 @@ class BootstrapInitialConditions:
 
 
 class BootstrapAnalysis:
-    runAnalysis = True      # Controls whether or not analysis is run
+    runAnalysis = False    # Controls whether or not analysis is run
 
     # Choose whether to filter averages as done in original procedure
     filterAvg = True      # True discards some unreasonable values of widths and intensities
