@@ -96,7 +96,7 @@ class ForwardInitialConditions(GeneralInitialConditions):    # Same structure as
     ])
     constraints = ()
 
-    noOfMSIterations = 1      
+    noOfMSIterations = 0      
     firstSpec = 144   #144
     lastSpec = 182   #182
 
@@ -113,10 +113,10 @@ class ForwardInitialConditions(GeneralInitialConditions):    # Same structure as
     multiple_scattering_order, number_of_events = 1, 1.e5    # Used in MS correction
 
 class YSpaceFitInitialConditions:
-    showPlots = False 
+    showPlots = True
     symmetrisationFlag = True
     rebinParametersForYSpaceFit = "-25, 0.5, 25"    # Needs to be symetric
-    fitModel = "ANSIO_GAUSSIAN"     # Options: 'SINGLE_GAUSSIAN', 'GC_C4', 'GC_C6', 'GC_C4_C6', 'DOUBLE_WELL', 'ANSIO_GAUSSIAN'
+    fitModel = "MULTIVARIATE_GAUSSIAN"     # Options: 'SINGLE_GAUSSIAN', 'GC_C4', 'GC_C6', 'GC_C4_C6', 'DOUBLE_WELL', 'ANSIO_GAUSSIAN'
     runMinos = True
     globalFit = True                 # Performs global fit with Minuit by default
     nGlobalFitGroups = 4             # Number or string "ALL"
@@ -124,12 +124,12 @@ class YSpaceFitInitialConditions:
 
 
 class UserScriptControls:
-    runRoutine = True 
+    runRoutine = True
     
     # Choose main procedure to run
-    procedure = "JOINT"  # Options: None, "BACKWARD", "FORWARD", "JOINT"
+    procedure = "FORWARD"  # Options: None, "BACKWARD", "FORWARD", "JOINT"
     # Choose on which ws to perform the fit in y space
-    fitInYSpace = None #"FORWARD"    # Options: None, "BACKWARD", "FORWARD", "JOINT"
+    fitInYSpace = "FORWARD"    # Options: None, "BACKWARD", "FORWARD", "JOINT"
 
 
 class BootstrapInitialConditions:
