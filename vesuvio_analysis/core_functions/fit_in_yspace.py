@@ -620,24 +620,25 @@ def selectModelAndPars(modelFlag):
         def model(x, A, sig_x, sig_y, sig_z):
 
             y = x[:, np.newaxis, np.newaxis]
-            theta = np.linspace(0, np.pi, 30)[np.newaxis, :, np.newaxis]   # 300 points seem like a good estimate for ~10 examples
-            phi = np.linspace(0, np.pi, 30)[np.newaxis, np.newaxis, :]
+            n_steps = 50       # Low number of integration steps because otherwise too slow
+            theta = np.linspace(0, np.pi / 2, n_steps)[np.newaxis, :, np.newaxis]
+            phi = np.linspace(0, np.pi / 2, n_steps)[np.newaxis, np.newaxis, :]
 
 
             S2_inv = np.sin(theta)**2 * np.cos(phi)**2 / sig_x**2     \
-              + np.sin(theta)**2 * np.sin(phi)**2 / sig_y**2   \
-              + np.cos(theta)**2 / sig_z**2
+                   + np.sin(theta)**2 * np.sin(phi)**2 / sig_y**2   \
+                   + np.cos(theta)**2 / sig_z**2
 
-            jp =  2/np.pi * 1/np.sqrt(2*np.pi) * 1/(sig_x*sig_y*sig_z) * np.sin(theta) \
-                    / S2_inv * np.exp( -y**2 / 2 * S2_inv) 
+            J = np.sin(theta) / S2_inv * np.exp(- y**2 / 2 * S2_inv)
 
-            J = np.trapz(jp, x=theta, axis=1)
-            J = np.trapz(J, x=phi, axis=1)
-            J *= A / np.trapz(J, x=y)
+            J = np.trapz(J, x=phi, axis=2)[:, :, np.newaxis]    # Keep shape
+            J = np.trapz(J, x=theta, axis=1)
 
+            J *= A * 2 / np.pi * 1 / np.sqrt(2 * np.pi) * 1 / (sig_x * sig_y * sig_z)    # Normalisation 
+            J = J.squeeze()
             return J
 
-        defaultPars = {"A":1, "sig_x":5, "sig_y":5, "sig_z":5}
+        defaultPars = {"A": 1, "sig_x": 5, "sig_y": 5, "sig_z": 5}
         sharedPars = ["sig_x", "sig_y", "sig_z"]
 
     else:
@@ -1037,7 +1038,7 @@ def fitProfileMantidFit(yFitIC, wsYSpaceSym, wsRes):
             *(1.+c6/384*(64*((x-x0)/sqrt(2)/sigma1)^6 - 480*((x-x0)/sqrt(2)/sigma1)^4 + 720*((x-x0)/sqrt(2)/sigma1)^2 - 120)),
             y0=0, A=1,x0=0,sigma1=4.0,c6=0.0,ties=()
             """
-        elif (yFitIC.fitModel=="DOUBLE_WELL") | (yFitIC.fitModel=="ANSIO_GAUSSIAN"):
+        elif (yFitIC.fitModel=="DOUBLE_WELL") | (yFitIC.fitModel=="ANSIO_GAUSSIAN") | (yFitIC.fitModel=="MULTIVARIATE_GAUSSIAN"):
             return
         else: raise ValueError("fitmodel not recognized.")
 
