@@ -616,6 +616,31 @@ def selectModelAndPars(modelFlag):
         defaultPars = {"A":1, "sig1":3, "sig2":5}
         sharedPars = ["sig1", "sig2"]           
 
+    elif modelFlag=="MULTIVARIATE_GAUSSIAN":
+        def model(x, A, sig_x, sig_y, sig_z):
+
+            y = x[:, np.newaxis, np.newaxis]
+            n_steps = 50       # Low number of integration steps because otherwise too slow
+            theta = np.linspace(0, np.pi / 2, n_steps)[np.newaxis, :, np.newaxis]
+            phi = np.linspace(0, np.pi / 2, n_steps)[np.newaxis, np.newaxis, :]
+
+
+            S2_inv = np.sin(theta)**2 * np.cos(phi)**2 / sig_x**2     \
+                   + np.sin(theta)**2 * np.sin(phi)**2 / sig_y**2   \
+                   + np.cos(theta)**2 / sig_z**2
+
+            J = np.sin(theta) / S2_inv * np.exp(- y**2 / 2 * S2_inv)
+
+            J = np.trapz(J, x=phi, axis=2)[:, :, np.newaxis]    # Keep shape
+            J = np.trapz(J, x=theta, axis=1)
+
+            J *= A * 2 / np.pi * 1 / np.sqrt(2 * np.pi) * 1 / (sig_x * sig_y * sig_z)    # Normalisation 
+            J = J.squeeze()
+            return J
+
+        defaultPars = {"A": 1, "sig_x": 5, "sig_y": 5, "sig_z": 5}
+        sharedPars = ["sig_x", "sig_y", "sig_z"]
+
     else:
         raise ValueError("Fitting Model not recognized, available options: 'SINGLE_GAUSSIAN', 'GC_C4_C6', 'GC_C4'")
     
@@ -750,7 +775,7 @@ def runMinos(mObj, yFitIC, constrFunc, wsName):
         minosAutoErr = list(np.zeros(np.array(minosManErr).shape))
 
         if yFitIC.showPlots:
-            fig.canvas.set_window_title(wsName+"_Manual_Implementation_MINOS")
+            fig.canvas.setWindowTitle(wsName+"_Manual_Implementation_MINOS")
             fig.show()
 
     return    parameters, values, errors, minosAutoErr, minosManErr
@@ -771,7 +796,7 @@ def runAndPlotManualMinos(minuitObj, constrFunc, bestFitVals, bestFitErrs, showP
     figsize = (12, 7)
     # Output plot to Mantid
     fig, axs = plt.subplots(height, width, tight_layout=True, figsize=figsize, subplot_kw={'projection':'mantid'})  #subplot_kw={'projection':'mantid'}
-    # fig.canvas.set_window_title("Plot of Manual Implementation MINOS")
+    # fig.canvas.setWindowTitle("Plot of Manual Implementation MINOS")
 
     merrors = {}
     for p, ax in zip(minuitObj.parameters, axs.flat):
@@ -896,7 +921,8 @@ def plotAutoMinos(minuitObj, wsName):
     figsize = (12, 7)
     # Output plot to Mantid
     fig, axs = plt.subplots(height, width, tight_layout=True, figsize=figsize, subplot_kw={'projection':'mantid'})
-    fig.canvas.set_window_title(wsName+"_Plot_Automatic_MINOS")
+    # fig.canvas.setWindowTitle(wsName+"_Plot_Automatic_MINOS")
+    fig.canvas.setWindowTitle(wsName+"_Plot_Automatic_MINOS")
  
     for p, ax in zip(minuitObj.parameters, axs.flat):
         loc, fvals, status = minuitObj.mnprofile(p, bound=2)
@@ -1012,7 +1038,7 @@ def fitProfileMantidFit(yFitIC, wsYSpaceSym, wsRes):
             *(1.+c6/384*(64*((x-x0)/sqrt(2)/sigma1)^6 - 480*((x-x0)/sqrt(2)/sigma1)^4 + 720*((x-x0)/sqrt(2)/sigma1)^2 - 120)),
             y0=0, A=1,x0=0,sigma1=4.0,c6=0.0,ties=()
             """
-        elif (yFitIC.fitModel=="DOUBLE_WELL") | (yFitIC.fitModel=="ANSIO_GAUSSIAN"):
+        elif (yFitIC.fitModel=="DOUBLE_WELL") | (yFitIC.fitModel=="ANSIO_GAUSSIAN") | (yFitIC.fitModel=="MULTIVARIATE_GAUSSIAN"):
             return
         else: raise ValueError("fitmodel not recognized.")
 
@@ -1274,7 +1300,7 @@ def groupDetectors(ipData, yFitIC):
 
     if yFitIC.showPlots:
         fig, ax = plt.subplots(tight_layout=True, subplot_kw={'projection':'mantid'})  
-        fig.canvas.set_window_title("Grouping of detectors")
+        fig.canvas.setWindowTitle("Grouping of detectors")
         plotFinalGroups(ax, ipData, idxList)
         fig.show()
     return idxList
@@ -1380,7 +1406,7 @@ def formIdxList(clusters):
 def plotDetsAndInitialCenters(L1, theta, centers):
     """Used in debugging."""
     fig, ax = plt.subplots(tight_layout=True, subplot_kw={'projection':'mantid'})  
-    fig.canvas.set_window_title("Starting centroids for groupings")
+    fig.canvas.setWindowTitle("Starting centroids for groupings")
     ax.scatter(L1, theta, alpha=0.3, color="r", label="Detectors")
     ax.scatter(centers[:, 0], centers[:, 1], color="k", label="Starting centroids")
     ax.axes.xaxis.set_ticks([])  # Numbers plotted do not correspond to real numbers, so hide them
@@ -1548,7 +1574,7 @@ def plotGlobalFit(dataX, dataY, dataE, mObj, totCost, wsName):
         tight_layout=True,
         subplot_kw={'projection':'mantid'}
     )
-    fig.canvas.set_window_title(wsName+"_Plot_of_Global_Fit")
+    fig.canvas.setWindowTitle(wsName+"_Plot_of_Global_Fit")
 
     # Data used in Global Fit
     for i, (x, y, yerr, ax) in enumerate(zip(dataX, dataY, dataE, axs.flat)):

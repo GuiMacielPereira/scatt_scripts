@@ -36,8 +36,6 @@ class LoadVesuvioFrontParameters:
 class GeneralInitialConditions:
     """Used to define initial conditions shared by both Back and Forward scattering"""
     
-    transmission_guess =  0.92      
-    multiple_scattering_order, number_of_events = 2, 1.e5
     vertical_width, horizontal_width, thickness = 0.1, 0.1, 0.001  
 
 
@@ -77,6 +75,9 @@ class BackwardInitialConditions(GeneralInitialConditions):
     tofBinning='50,1.,420'           
     maskTOFRange = None        # TOF Range for the resonance peak
 
+    transmission_guess =  0.92      
+    multiple_scattering_order, number_of_events = 2, 1.e5
+
 
 class ForwardInitialConditions(GeneralInitialConditions):
 
@@ -110,6 +111,9 @@ class ForwardInitialConditions(GeneralInitialConditions):
     tofBinning="110,1.,430"         
     maskTOFRange = None        # TOF Range for the resonance peak
  
+    transmission_guess =  0.92      
+    multiple_scattering_order, number_of_events = 2, 1.e5
+
 
 class YSpaceFitInitialConditions:
     showPlots = True
