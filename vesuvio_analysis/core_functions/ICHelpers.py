@@ -30,9 +30,9 @@ def completeICFromInputs(IC, scriptName, wsIC):
 
     # Extract some attributes from wsIC
     IC.mode = wsIC.mode
-    IC.subEmptyFromRaw = wsIC.subEmptyFromRaw
-    IC.scaleEmpty = wsIC.scaleEmpty
-    IC.scaleRaw = wsIC.scaleRaw
+    # IC.subEmptyFromRaw = wsIC.subEmptyFromRaw
+    # IC.scaleEmpty = wsIC.scaleEmpty
+    # IC.scaleRaw = wsIC.scaleRaw
     
     # When attribute InstrParsPath is not present, set it equal to path from wsIC
     try:    
@@ -81,6 +81,9 @@ def completeICFromInputs(IC, scriptName, wsIC):
 
 
 def inputDirsForSample(wsIC, sampleName):
+    currLoadWSDict = convertLoadWSICToDict(wsIC)
+    # rawPath, emptyPath = searchLoadWSICStored(currLoadWSDict, )
+
     inputWSPath = experimentsPath / sampleName / "input_ws"
     inputWSPath.mkdir(parents=True, exist_ok=True)
 
@@ -94,8 +97,28 @@ def inputDirsForSample(wsIC, sampleName):
     rawWSName = sampleName + "_" + "raw" + "_" + runningMode + ".nxs"
     emptyWSName = sampleName + "_" + "empty" + "_" + runningMode + ".nxs"
 
-    rawPath = inputWSPath / rawWSName
-    emptyPath = inputWSPath / emptyWSName
+    # Default is to create a new directory
+    wsDirs =  inputWSPath.glob('ws_*/'):
+    versionNums = [float(dir.name.split('_')[-1]) for dir in wsDirs]
+    newNum = max(versionNums) + 1
+    newDirName = 'ws_' + newNum
+    newWSDir = inputWSPath / newDirName 
+    newWSDir.mkdir(parents=True, exist_ok=True)
+
+    rawPath = newWSDir / rawWSName
+    emptyPath = newWSDir / emptyWSName
+
+    for filePath in inputWSPath.rglob('*' + runningMode + '.json'):
+        with open(filePath, 'w') as f:
+            storedDict = json.load(f)
+
+            if currLoadWSDict == storedDict:   # Ignores order
+
+                rawPath = filePath.parent / rawWSName
+                emptyPath = filePath.parent / emptyWSName
+
+    # rawPath = inputWSPath / rawWSName
+    # emptyPath = inputWSPath / emptyWSName
     return rawPath, emptyPath
 
 
@@ -260,3 +283,10 @@ def completeYFitIC(yFitIC, sampleName):
     figSavePath.mkdir(exist_ok=True)
     yFitIC.figSavePath = figSavePath
     return
+
+def convertLoadWSICToDict(wsIC):
+    load_ws_params = {}
+    for attr in ["runs", "empty_runs", "spectra", "mode", "ipfile" ]:
+        load_ws_params[attr] = getattr(wsIC)
+    return load_ws_params 
+
