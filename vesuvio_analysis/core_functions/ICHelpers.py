@@ -3,6 +3,7 @@ from random import sample
 from mantid.simpleapi import LoadVesuvio, SaveNexus
 from pathlib import Path
 import numpy as np
+import json
 currentPath = Path(__file__).absolute().parent
 experimentsPath = currentPath / ".."/ ".." / "experiments"
 
@@ -42,8 +43,13 @@ def completeICFromInputs(IC, scriptName, wsIC):
 
     # Sort out input and output paths
     rawPath, emptyPath = inputDirsForSample(wsIC, scriptName)
-    if not(rawPath.is_file()) or not(emptyPath.is_file()):    
-        print(f"\nWorkspaces not found.\nSaving Workspaces:\n{rawPath.name}\n{emptyPath.name}")
+
+    if (not rawPath.is_file()) or (not emptyPath.is_file()):
+
+        rawPath.parent.mkdir(parents=True, exist_ok=True)
+        assert rawPath.parent == emptyPath.parent, "Raw and Empty workspaces not set up to be saved under the same directory"
+        print(f"\nWorkspaces not found, will save new workspaces in: {rawPath.parent.name}")
+
         saveWSFromLoadVesuvio(wsIC, rawPath, emptyPath)
     
     IC.userWsRawPath = rawPath
@@ -81,45 +87,57 @@ def completeICFromInputs(IC, scriptName, wsIC):
 
 
 def inputDirsForSample(wsIC, sampleName):
-    currLoadWSDict = convertLoadWSICToDict(wsIC)
-    # rawPath, emptyPath = searchLoadWSICStored(currLoadWSDict, )
-
     inputWSPath = experimentsPath / sampleName / "input_ws"
     inputWSPath.mkdir(parents=True, exist_ok=True)
 
-    if int(wsIC.spectra.split("-")[1])<135:
-        runningMode = "backward"
-    elif int(wsIC.spectra.split("-")[0])>=135:
-        runningMode = "forward"
-    else:
-        print("Problem in loading workspaces: invalid range of spectra.")
+    runningMode = identifyRunningMode(wsIC)
 
-    rawWSName = sampleName + "_" + "raw" + "_" + runningMode + ".nxs"
-    emptyWSName = sampleName + "_" + "empty" + "_" + runningMode + ".nxs"
+    rawWSName, emptyWSName = nameRawEmptyWS(sampleName, runningMode)
 
-    # Default is to create a new directory
-    wsDirs =  inputWSPath.glob('ws_*/'):
-    versionNums = [float(dir.name.split('_')[-1]) for dir in wsDirs]
-    newNum = max(versionNums) + 1
-    newDirName = 'ws_' + newNum
-    newWSDir = inputWSPath / newDirName 
-    newWSDir.mkdir(parents=True, exist_ok=True)
+    newWSDir = defaultNewWSDirectory(inputWSPath, runningMode)
 
     rawPath = newWSDir / rawWSName
     emptyPath = newWSDir / emptyWSName
 
+    currLoadWSDict = convertLoadWSICToDict(wsIC)
+
     for filePath in inputWSPath.rglob('*' + runningMode + '.json'):
-        with open(filePath, 'w') as f:
-            storedDict = json.load(f)
+        storedDict = json.load(open(filePath))
 
-            if currLoadWSDict == storedDict:   # Ignores order
+        if currLoadWSDict == storedDict:   # Ignores order
 
-                rawPath = filePath.parent / rawWSName
-                emptyPath = filePath.parent / emptyWSName
+            storedWSDir = filePath.parent
 
-    # rawPath = inputWSPath / rawWSName
-    # emptyPath = inputWSPath / emptyWSName
+            rawPath = storedWSDir / rawWSName
+            emptyPath = storedWSDir / emptyWSName
+            print(f"\nFound {runningMode} workspaces with matching inputs in: {str(storedWSDir.name)}")
+
     return rawPath, emptyPath
+
+
+def identifyRunningMode(wsIC) -> str:
+    if int(wsIC.spectra.split("-")[1]) < 135:
+        runningMode = "backward"
+    elif int(wsIC.spectra.split("-")[0]) >= 135:
+        runningMode = "forward"
+    else:
+        raise ValueError("Problem in loading workspaces: invalid range of spectra.")
+    return runningMode
+
+
+def nameRawEmptyWS(sampleName, runningMode):
+    rawWSName = sampleName + "_raw_" + runningMode + ".nxs"
+    emptyWSName = sampleName + "_empty_" + runningMode + ".nxs"
+    return rawWSName, emptyWSName
+
+
+def defaultNewWSDirectory(inputWSPath, runningMode):
+    wsDirs = inputWSPath.glob(f'{runningMode}*/')
+    versionNums = [float(dir.name.split('_')[-1]) for dir in wsDirs]
+    versionNums = [0.0] if not versionNums else versionNums    # Take care of empty list
+    newDirName = runningMode + '_' + str(max(versionNums) + 1)
+    newWSDir = inputWSPath / newDirName
+    return newWSDir
 
 
 def setOutputDirsForSample(IC, sampleName):
@@ -146,30 +164,41 @@ def saveWSFromLoadVesuvio(wsIC, rawPath, emptyPath):
     print(f"\nLoading and storing workspace sample runs: {wsIC.runs}\n")
 
     rawVesuvio = LoadVesuvio(
-        Filename=wsIC.runs, 
-        SpectrumList=wsIC.spectra, 
+        Filename=wsIC.runs,
+        SpectrumList=wsIC.spectra,
         Mode=wsIC.mode,
-        InstrumentParFile=str(wsIC.ipfile), 
+        InstrumentParFile=str(wsIC.ipfile),
         OutputWorkspace=rawPath.name
         )
 
     SaveNexus(rawVesuvio, str(rawPath))
-    print("\nRaw workspace stored locally.\n")
+    print(f"\nRaw workspace stored locally under {rawPath.parent.name}\n")
 
     emptyVesuvio = LoadVesuvio(
-        Filename=wsIC.empty_runs, 
-        SpectrumList=wsIC.spectra, 
+        Filename=wsIC.empty_runs,
+        SpectrumList=wsIC.spectra,
         Mode=wsIC.mode,
-        InstrumentParFile=str(wsIC.ipfile), 
+        InstrumentParFile=str(wsIC.ipfile),
         OutputWorkspace=emptyPath.name
         )
 
     SaveNexus(emptyVesuvio, str(emptyPath))
-    print("\nEmpty workspace stored locally.\n")
-    return 
+    print(f"\nRaw workspace stored locally under {emptyPath.parent.name}\n")
+
+    wsLogNameFile = rawPath.name.replace('_raw_', '_').replace('.nxs', '.json')
+    saveJsonFile(rawPath.parent, wsLogNameFile, wsIC)
+    return
+
+
+def saveJsonFile(parentDir, fileName, wsIC):
+    savePath = parentDir / fileName
+    currLoadWSDict = convertLoadWSICToDict(wsIC)
+    json.dump(currLoadWSDict, open(savePath, 'w'))
+    return
+
 
 def completeBootIC(bootIC, bckwdIC, fwdIC, yFitIC):
-    if not(bootIC.runBootstrap):
+    if not bootIC.runBootstrap:
         return
 
     try:    # Assume it is not running a test if atribute is not found
@@ -287,6 +316,6 @@ def completeYFitIC(yFitIC, sampleName):
 def convertLoadWSICToDict(wsIC):
     load_ws_params = {}
     for attr in ["runs", "empty_runs", "spectra", "mode", "ipfile" ]:
-        load_ws_params[attr] = getattr(wsIC)
-    return load_ws_params 
+        load_ws_params[attr] = str(getattr(wsIC, attr))      # str -> str, PosixPath -> str
+    return load_ws_params
 

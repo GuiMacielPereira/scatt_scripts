@@ -126,7 +126,7 @@ class YSpaceFitInitialConditions:
 
 
 class UserScriptControls:
-    runRoutine = True
+    runRoutine = False
     
     # Choose main procedure to run
     procedure = "FORWARD"  # Options: None, "BACKWARD", "FORWARD", "JOINT"
