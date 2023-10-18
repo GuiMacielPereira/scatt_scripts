@@ -16,10 +16,6 @@ class LoadVesuvioBackParameters:
     mode = "DoubleDifference"
     ipfile = ipFilesPath / 'ip2018_3.par'  
 
-    subEmptyFromRaw = True         # Flag to control wether empty ws gets subtracted from raw
-    scaleEmpty = 0.9        
-    scaleRaw = 1
-
 
 class LoadVesuvioFrontParameters:
     runs = '38543-38564'        # 100K        # The numbers of the runs to be analysed
@@ -27,10 +23,6 @@ class LoadVesuvioFrontParameters:
     spectra = '135-182'                        # Spectra to be analysed
     mode = "SingleDifference" 
     ipfile = ipFilesPath / "ip2018_3.par"
-
-    subEmptyFromRaw = True     # Flag to control wether empty ws gets subtracted from raw
-    scaleEmpty = 0.9       
-    scaleRaw = 1
 
 
 class GeneralInitialConditions:
@@ -41,6 +33,10 @@ class GeneralInitialConditions:
 
 
 class BackwardInitialConditions(GeneralInitialConditions):
+
+    subEmptyFromRaw = True         # Flag to control wether empty ws gets subtracted from raw
+    scaleEmpty = 0.9        
+    scaleRaw = 1
 
     HToMassIdxRatio = 21  # Set to None when either unknown or H not present
     massIdx = 0
@@ -84,6 +80,10 @@ class BackwardInitialConditions(GeneralInitialConditions):
 
 
 class ForwardInitialConditions(GeneralInitialConditions):
+
+    subEmptyFromRaw = True     # Flag to control wether empty ws gets subtracted from raw
+    scaleEmpty = 0.9       
+    scaleRaw = 1
 
     masses = np.array([1.0079, 16, 27, 28, 93, 137.3]) 
 
@@ -136,7 +136,7 @@ class YSpaceFitInitialConditions:
 
 
 class UserScriptControls:
-    runRoutine = True
+    runRoutine = False 
 
     # Choose main procedure to run
     procedure = "FORWARD"   # Options: None, "BACKWARD", "FORWARD", "JOINT"
