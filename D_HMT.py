@@ -18,9 +18,6 @@ class LoadVesuvioBackParameters:
     mode = 'DoubleDifference'
     ipfile=ipFilesPath / "ip2018_3.par" 
 
-    subEmptyFromRaw = True      
-    scaleEmpty = 1    
-    scaleRaw = 1  
 
 class LoadVesuvioFrontParameters:
     runs='36517-36556'                   
@@ -29,9 +26,6 @@ class LoadVesuvioFrontParameters:
     mode='SingleDifference'
     ipfile=ipFilesPath / "ip2018_3.par"
 
-    subEmptyFromRaw = False        
-    scaleEmpty = 1      
-    scaleRaw = 1
 
 class GeneralInitialConditions:
     """Used to define initial conditions shared by both Back and Forward scattering"""
@@ -40,6 +34,10 @@ class GeneralInitialConditions:
 
 
 class BackwardInitialConditions(GeneralInitialConditions):
+
+    subEmptyFromRaw = True      
+    scaleEmpty = 1    
+    scaleRaw = 1  
 
     HToMassIdxRatio = None   # Set to None when H is not present or not known
     massIdx = 0
@@ -80,6 +78,10 @@ class BackwardInitialConditions(GeneralInitialConditions):
 
 
 class ForwardInitialConditions(GeneralInitialConditions):
+
+    subEmptyFromRaw = False        
+    scaleEmpty = 1      
+    scaleRaw = 1
 
     masses = np.array([2.015, 12, 14, 27]) 
   
@@ -149,7 +151,7 @@ class BootstrapInitialConditions:
 
 
 class BootstrapAnalysis:
-    runAnalysis = True 
+    runAnalysis = False
 
     # Choose whether to filter averages as done in original procedure
     filterAvg = True                 # True discards some unreasonable values of widths and intensities

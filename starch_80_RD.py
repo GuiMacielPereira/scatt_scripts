@@ -18,9 +18,6 @@ class LoadVesuvioBackParameters:
     mode = 'DoubleDifference'           
     ipfile = ipFilesPath / "ip2019.par"    # Name of ip file in ip_files folder
 
-    subEmptyFromRaw = True    # Subtracts Empty WS from Raw WS 
-    scaleEmpty = 1       # Scaling factor 
-    scaleRaw = 1         # Scaling factor
 
 class LoadVesuvioFrontParameters:    # Same as previous class but for forward ws
     runs = '43066-43076'         
@@ -29,9 +26,6 @@ class LoadVesuvioFrontParameters:    # Same as previous class but for forward ws
     mode = 'SingleDifference'  
     ipfile = ipFilesPath / "ip2018_3.par"
 
-    subEmptyFromRaw = False     
-    scaleEmpty = 1      
-    scaleRaw = 1
 
 class GeneralInitialConditions:
     """Used to define initial conditions shared by both Back and Forward scattering"""
@@ -39,6 +33,10 @@ class GeneralInitialConditions:
 
 
 class BackwardInitialConditions(GeneralInitialConditions):
+
+    subEmptyFromRaw = True    # Subtracts Empty WS from Raw WS 
+    scaleEmpty = 1       # Scaling factor 
+    scaleRaw = 1         # Scaling factor
 
     # Ratio of H peak to chosen mass
     HToMassIdxRatio = 19.0620008206   # Set to None either when H not present or ratio not known 
@@ -78,6 +76,10 @@ class BackwardInitialConditions(GeneralInitialConditions):
 
 
 class ForwardInitialConditions(GeneralInitialConditions):    # Same structure as above
+
+    subEmptyFromRaw = False     
+    scaleEmpty = 1      
+    scaleRaw = 1
 
     masses = np.array([1.0079, 12, 16, 27]) 
 
@@ -124,7 +126,7 @@ class YSpaceFitInitialConditions:
 
 
 class UserScriptControls:
-    runRoutine = True
+    runRoutine = False
     
     # Choose main procedure to run
     procedure = "FORWARD"  # Options: None, "BACKWARD", "FORWARD", "JOINT"
